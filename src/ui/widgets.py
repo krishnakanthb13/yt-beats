@@ -15,8 +15,8 @@ class SearchResultItem(ListItem):
         self.duration = duration
 
     def compose(self) -> ComposeResult:
-        yield Label(f"{self.title}", classes="result-title")
-        yield Label(f"{self.uploader} • {self.duration}", classes="result-meta")
+        yield Label(self.title, classes="result-title")
+        yield Label(f"{self.uploader} - {self.duration}", classes="result-meta")
 
 class LibraryItem(ListItem):
     def __init__(self, title: str, path: str):
@@ -25,8 +25,8 @@ class LibraryItem(ListItem):
         self.path = path
 
     def compose(self) -> ComposeResult:
-        yield Label(f"󰎈 {self.title}", classes="library-title")
-        yield Label(f"Local Path: {self.path}", classes="library-path")
+        yield Label(self.title, classes="library-title")
+        yield Label(self.path, classes="library-path")
 
 class QueueItem(ListItem):
     def __init__(self, title: str, status: str):
@@ -35,12 +35,12 @@ class QueueItem(ListItem):
         self.status = status
 
     def compose(self) -> ComposeResult:
-        yield Label(f"{self.title}", classes="queue-title")
-        yield Label(f"[{self.status}]", classes="queue-status")
+        yield Label(self.title, classes="queue-title")
+        yield Label(self.status, classes="queue-status")
 
 class PlayerControls(Container):
     def compose(self) -> ComposeResult:
-        yield Button("Play/Pause", id="btn-play", variant="primary")
+        yield Button("Pause", id="btn-play", variant="primary")
         yield Button("Stop", id="btn-stop", variant="error")
         with Vertical(id="player-info"):
             yield Label("Stopped", id="status-label")

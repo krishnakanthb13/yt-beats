@@ -3,6 +3,7 @@ import threading
 import queue
 import time
 import os
+import shutil
 from typing import List, Dict, Any, Callable, Optional
 
 class DownloadTask:

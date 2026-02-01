@@ -16,16 +16,20 @@ import os
 class YTBeatsApp(App):
     CSS_PATH = "ui/styles.css"
     BINDINGS = [
-        ("q", "quit", "Quit"),
-        ("d", "download_selected", "Download"),
-        ("/", "focus_search", "Search"),
-        ("space", "toggle_pause", "Pause/Resume"),
-        ("r", "refresh_library", "Refresh Library"),
-        ("n", "next_track", "Next"),
-        ("p", "previous_track", "Previous"),
-        ("c", "clear_queue", "Clear Queue"),
-        ("]", "volume_up", "Vol +"),
-        ("[", "volume_down", "Vol -"),
+        Binding("q", "quit", "Quit"),
+        Binding("d", "download_selected", "Download"),
+        Binding("/", "focus_search", "Search"),
+        Binding("space", "toggle_pause", "Pause / Resume"),
+        Binding("r", "refresh_library", "Refresh Library"),
+        Binding("n", "next_track", "Next"),
+        Binding("p", "previous_track", "Prev"),
+        Binding("right", "next_track", "Next", show=False),
+        Binding("left", "previous_track", "Prev", show=False),
+        Binding("c", "clear_queue", "Clear"),
+        Binding("]", "volume_up", "Vol +", show=False),
+        Binding("[", "volume_down", "Vol -", show=False),
+        Binding("up", "volume_up", "Vol +", show=False),
+        Binding("down", "volume_down", "Vol -", show=False),
     ]
 
     def __init__(self):
@@ -245,11 +249,11 @@ class YTBeatsApp(App):
         for i, item in enumerate(queue_list.children):
             if isinstance(item, QueueItem):
                 if i < self.current_index:
-                    item.query_one(".queue-status", Label).update("[Finished]")
+                    item.query_one(".queue-status", Label).update("Finished")
                 elif i == self.current_index:
-                    item.query_one(".queue-status", Label).update("[Playing]")
+                    item.query_one(".queue-status", Label).update("Playing")
                 else:
-                    item.query_one(".queue-status", Label).update("[Pending]")
+                    item.query_one(".queue-status", Label).update("Pending")
 
     def action_clear_queue(self):
         """Clear the entire playlist."""
@@ -310,15 +314,11 @@ class YTBeatsApp(App):
 
     def action_volume_up(self):
         if self.engine:
-            status = self.engine.get_status()
-            vol = min(status.get("volume", 100) + 10, 100)
-            self.engine.set_volume(vol)
+            self.engine.change_volume(10)
 
     def action_volume_down(self):
         if self.engine:
-            status = self.engine.get_status()
-            vol = max(status.get("volume", 100) - 10, 0)
-            self.engine.set_volume(vol)
+            self.engine.change_volume(-10)
 
 if __name__ == "__main__":
     app = YTBeatsApp()

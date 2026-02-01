@@ -1,24 +1,25 @@
+/* Modern Slate Theme */
 Screen {
-    layout: vertical;
-    background: #121212;
-    color: #e0e0e0;
+    background: #0f172a;
+    color: #f1f5f9;
 }
 
 Header {
     dock: top;
     height: 1;
-    background: #304ffe;
-    color: white;
+    background: #1e293b;
+    color: #38bdf8;
     text-style: bold;
 }
 
 Footer {
     dock: bottom;
-    height: 1;
-    background: #1e1e1e;
-    color: #888;
+    height: auto;
+    background: #0f172a;
+    color: #64748b;
 }
 
+/* Layout */
 #main-container {
     layout: horizontal;
     height: 1fr;
@@ -27,155 +28,177 @@ Footer {
 #left-pane {
     width: 60%;
     height: 100%;
-    border-right: solid #444;
+    border-right: solid #1e293b;
+    background: #0f172a;
 }
 
 #right-pane {
     width: 40%;
     height: 100%;
-    background: #181818;
+    background: #111827;
 }
 
-/* Search Bar Area */
+/* Tabs */
+TabbedContent {
+    height: 1fr;
+}
+
+TabPane {
+    padding: 0;
+}
+
+Tabs {
+    background: #1e293b;
+    color: #94a3b8;
+}
+
+Tab.-active {
+    color: #38bdf8;
+    text-style: bold;
+}
+
+/* Search Area */
 #search-bar {
-    height: 3;
+    height: auto;
     padding: 0 1;
-    background: #1e1e1e;
-    border-bottom: solid #444;
+    background: #1e293b;
 }
 
 Input {
-    border: solid #555;
-    background: #2a2a2a;
-    color: white;
+    border: solid #334155;
+    background: #0f172a;
+    color: #f1f5f9;
 }
 
 Input:focus {
-    border: solid #304ffe;
+    border: solid #38bdf8;
 }
 
-/* Results List */
-#results-list {
+/* Lists */
+ListView {
     height: 1fr;
-    background: #121212;
-    margin: 1;
+    background: transparent;
+    padding: 0;
 }
 
-.search-result {
-    padding: 1;
-    background: #1e1e1e;
-    color: #e0e0e0;
-    border-bottom: solid #333;
-}
-
-.search-result:hover {
-    background: #2c2c2c;
-}
-
-.result-title {
-    text-style: bold;
-    color: #ffffff;
-}
-
-.result-meta {
-    color: #aaaaaa;
-}
-
-/* Right Pane: Queue & Downloads */
-.section-header {
-    background: #252525;
-    color: #304ffe;
+ListItem {
     padding: 0 1;
+    background: transparent;
+    border-bottom: solid #1e293b;
+}
+
+ListItem:hover {
+    background: #1e293b;
+}
+
+ListItem.--highlight {
+    background: #334155;
     text-style: bold;
 }
 
-#queue-list {
-    height: 1fr;
-    border-bottom: solid #444;
-    background: #181818;
+/* Items */
+.result-title,
+.library-title,
+.queue-title {
+    color: #f8fafc;
 }
 
-.queue-title {
-    color: #dddddd;
+.result-meta,
+.library-path {
+    color: #64748b;
+    text-style: italic;
 }
 
 .queue-status {
-    color: #888888;
+    color: #38bdf8;
+    text-style: bold;
+}
+
+/* Side Sections */
+.section-header {
+    background: #1e293b;
+    color: #38bdf8;
+    padding: 0 1;
+    text-style: bold;
+    width: 100%;
 }
 
 #active-downloads {
-    height: 10;
-    background: #1a1a1a;
-    padding: 1;
+    height: auto;
+    min-height: 2;
+    padding: 0 1;
 }
 
-/* Player Controls */
+/* Player Bar */
 #player-controls {
     dock: bottom;
     height: 3;
-    background: #202020;
-    border-top: solid #444;
-    padding: 1;
+    background: #1e293b;
+    border-top: solid #38bdf8;
     layout: horizontal;
-    align-vertical: middle;
+    padding: 0 1;
 }
 
 Button {
-    background: #304ffe;
-    color: white;
+    height: 1;
+    margin-top: 1;
     margin-right: 2;
+    background: #334155;
+    color: #f1f5f9;
+    border: none;
 }
 
-Button.variant-error {
-    background: #c62828;
+Button:hover {
+    background: #475569;
 }
 
-#status-label {
-    padding: 1;
-    color: #aaaaaa;
-    width: 1fr;
+#btn-play {
+    background: #0284c7;
 }
 
-#vol-label {
-    padding: 1;
-    color: #aaaaaa;
-    width: 10;
+#btn-stop {
+    background: #991b1b;
 }
 
 #player-info {
     width: 1fr;
     height: 100%;
+    padding: 0 2;
+}
+
+#status-label {
+    height: 1;
+    margin-top: 0;
+    color: #38bdf8;
+    text-style: bold;
 }
 
 #track-progress {
     width: 100%;
-    margin: 0 1;
+    height: 1;
 }
 
 #track-progress>.progress--bar {
-    background: #444;
+    background: #0f172a;
 }
 
 #track-progress>.progress--bar-value {
-    background: #304ffe;
+    background: #38bdf8;
 }
 
-/* Library Tab */
-#library-list {
-    height: 1fr;
-    background: #121212;
+#vol-label {
+    width: 12;
+    height: 1;
+    margin-top: 1;
+    color: #38bdf8;
+    text-style: bold;
+    text-align: right;
 }
 
-.library-title {
-    color: #4caf50;
-    padding-left: 1;
+ProgressBar>.progress--bar {
+    background: #0f172a;
 }
 
-.library-path {
-    color: #555555;
-    padding-left: 2;
-}
-
-TabPane {
-    padding: 0;
+ProgressBar>.progress--bar-value {
+    background: #38bdf8;
 }

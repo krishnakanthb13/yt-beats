@@ -36,6 +36,8 @@ class AudioEngine:
             "--force-window=no",      # Strictly no window
             "--player-operation-mode=cplayer", # Force console mode (no OSC/GUI)
             "--osd-level=0",          # Disable on-screen display
+            "--input-default-bindings=no", # Disable built-in keys
+            "--input-builtin-bindings=no",
             f"--input-ipc-server={full_pipe}"
         ]
         
@@ -100,8 +102,15 @@ class AudioEngine:
     def set_volume(self, volume: int):
         """Sets volume (0-100)."""
         try:
-            self.mpv.volume = volume
-        except Exception as e:
+            self.mpv.command("set_property", "volume", volume)
+        except Exception:
+            pass
+
+    def change_volume(self, delta: int):
+        """Changes volume by delta (e.g., 5 or -5)."""
+        try:
+            self.mpv.command("add", "volume", delta)
+        except Exception:
             pass
 
     def quit(self):
@@ -119,13 +128,14 @@ class AudioEngine:
     def get_status(self) -> Dict[str, Any]:
         """Returns playback status."""
         try:
-            props = self.mpv.get_properties(["pause", "time-pos", "duration", "media-title", "volume"])
+            # Fetch properties; use default values if None is returned
+            p = self.mpv.get_properties(["pause", "time-pos", "duration", "media-title", "volume"])
             return {
-                "paused": props.get("pause", False),
-                "position": props.get("time-pos", 0) or 0,
-                "duration": props.get("duration", 0) or 0,
-                "title": props.get("media-title", "Stopped"),
-                "volume": props.get("volume", 100),
+                "paused": p.get("pause", False) or False,
+                "position": float(p.get("time-pos", 0) or 0),
+                "duration": float(p.get("duration", 0) or 0),
+                "title": p.get("media-title", "Stopped") or "Stopped",
+                "volume": int(p.get("volume", 100) or 100),
             }
         except Exception:
             return {
@@ -133,7 +143,7 @@ class AudioEngine:
                 "position": 0,
                 "duration": 0,
                 "title": "Stopped",
-                "volume": 0
+                "volume": 100
             }
 
     def _on_end_file(self, event_data):
