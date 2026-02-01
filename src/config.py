@@ -26,17 +26,26 @@ def get_downloads_dir() -> Path:
 def get_mpv_path() -> str:
     """Returns the absolute path to mpv executable, preferring .exe over .com."""
     mpv = shutil.which("mpv")
-    if not mpv:
-        return None
+    if mpv:
+        if mpv.lower().endswith(".com"):
+            exe_path = Path(mpv).parent / "mpv.exe"
+            if exe_path.exists():
+                return str(exe_path)
+        return mpv
         
-    # If we found mpv.com, try to see if mpv.exe is in the same folder
-    # This avoids shim issues on Chocolatey/Windows
-    if mpv.lower().endswith(".com"):
-        exe_path = Path(mpv).parent / "mpv.exe"
-        if exe_path.exists():
-            return str(exe_path)
+    # Fallback for common Chocolatey/Windows paths if which() fails
+    fallbacks = [
+        r"C:\ProgramData\chocolatey\lib\mpvio.install\tools\mpv.exe",
+        r"C:\ProgramData\chocolatey\bin\mpv.exe",
+        r"C:\mpv\mpv.exe",
+        Path.home() / "mpv.exe"
+    ]
+    
+    for path in fallbacks:
+        if os.path.exists(path):
+            return str(path)
             
-    return mpv
+    return None
 
 def check_mpv_installed() -> bool:
     """Checks if mpv is available in the system PATH."""

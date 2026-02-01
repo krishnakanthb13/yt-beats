@@ -8,7 +8,6 @@ Header {
     dock: top;
     height: 1;
     background: #304ffe;
-    /* Bright Blue */
     color: white;
     text-style: bold;
 }
@@ -20,8 +19,25 @@ Footer {
     color: #888;
 }
 
+#main-container {
+    layout: horizontal;
+    height: 1fr;
+}
+
+#left-pane {
+    width: 60%;
+    height: 100%;
+    border-right: solid #444;
+}
+
+#right-pane {
+    width: 40%;
+    height: 100%;
+    background: #181818;
+}
+
+/* Search Bar Area */
 #search-bar {
-    dock: top;
     height: 3;
     padding: 0 1;
     background: #1e1e1e;
@@ -38,9 +54,9 @@ Input:focus {
     border: solid #304ffe;
 }
 
+/* Results List */
 #results-list {
     height: 1fr;
-    border: solid #444;
     background: #121212;
     margin: 1;
 }
@@ -49,15 +65,51 @@ Input:focus {
     padding: 1;
     background: #1e1e1e;
     color: #e0e0e0;
-    border: solid #333;
-    margin-bottom: 1;
+    border-bottom: solid #333;
 }
 
 .search-result:hover {
     background: #2c2c2c;
-    border: solid #555;
 }
 
+.result-title {
+    text-style: bold;
+    color: #ffffff;
+}
+
+.result-meta {
+    color: #aaaaaa;
+}
+
+/* Right Pane: Queue & Downloads */
+.section-header {
+    background: #252525;
+    color: #304ffe;
+    padding: 0 1;
+    text-style: bold;
+}
+
+#queue-list {
+    height: 1fr;
+    border-bottom: solid #444;
+    background: #181818;
+}
+
+.queue-title {
+    color: #dddddd;
+}
+
+.queue-status {
+    color: #888888;
+}
+
+#active-downloads {
+    height: 10;
+    background: #1a1a1a;
+    padding: 1;
+}
+
+/* Player Controls */
 #player-controls {
     dock: bottom;
     height: 3;
@@ -74,7 +126,56 @@ Button {
     margin-right: 2;
 }
 
+Button.variant-error {
+    background: #c62828;
+}
+
 #status-label {
     padding: 1;
     color: #aaaaaa;
+    width: 1fr;
+}
+
+#vol-label {
+    padding: 1;
+    color: #aaaaaa;
+    width: 10;
+}
+
+#player-info {
+    width: 1fr;
+    height: 100%;
+}
+
+#track-progress {
+    width: 100%;
+    margin: 0 1;
+}
+
+#track-progress>.progress--bar {
+    background: #444;
+}
+
+#track-progress>.progress--bar-value {
+    background: #304ffe;
+}
+
+/* Library Tab */
+#library-list {
+    height: 1fr;
+    background: #121212;
+}
+
+.library-title {
+    color: #4caf50;
+    padding-left: 1;
+}
+
+.library-path {
+    color: #555555;
+    padding-left: 2;
+}
+
+TabPane {
+    padding: 0;
 }
