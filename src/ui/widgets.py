@@ -50,4 +50,6 @@ class PlayerControls(Container):
 class DownloadStatus(Container):
     def compose(self) -> ComposeResult:
         yield Label("Downloads:", classes="section-header")
-        yield Vertical(id="active-downloads")
+        with Vertical(id="active-downloads"):
+            yield Label("No active downloads.", id="dl-status-label")
+            yield ProgressBar(id="dl-progress-bar", total=100, show_eta=True)

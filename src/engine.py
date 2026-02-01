@@ -54,11 +54,21 @@ class AudioEngine:
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
         )
         
-        # Give MPV a moment to create the pipe
-        time.sleep(0.5)
-            
-        # Connect library to the existing process
-        self.mpv = MPV(start_mpv=False, ipc_socket=pipe_name)
+        # Connection retry loop replaces the magic sleep
+        connected = False
+        start_time = time.time()
+        while time.time() - start_time < 3.0: # Try for 3 seconds
+            try:
+                # Connection library to the existing process
+                self.mpv = MPV(start_mpv=False, ipc_socket=pipe_name)
+                connected = True
+                break
+            except Exception:
+                time.sleep(0.1)
+        
+        if not connected:
+            self.quit()
+            raise RuntimeError(f"Could not connect to MPV IPC on pipe: {full_pipe}")
                        
         # Configure MPV properties via IPC
         self.mpv.command("set_property", "keep-open", "yes") # Don't exit on partial errors
@@ -166,15 +176,7 @@ class AudioEngine:
                 self.on_track_end("error")
 
     def _cleanup_orphaned_processes(self):
-        """Kills lingering MPV processes that might be holding IPC pipes."""
-        if os.name == 'nt':
-            try:
-                # Use taskkill to find mpv processes started with our unique IPC prefix
-                # This is a bit aggressive but ensures a clean slate
-                subprocess.run(
-                    ["taskkill", "/f", "/fi", "IMAGENAME eq mpv.exe"], 
-                    capture_output=True, 
-                    check=False
-                )
-            except:
-                pass
+        """No-op by default to avoid killing other MPV instances. 
+        Unique pipe names are used to prevent conflicts."""
+        # Cleanup logic is now handled by process tracking and quit()
+        pass

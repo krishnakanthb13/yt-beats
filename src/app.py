@@ -123,25 +123,22 @@ class YTBeatsApp(App):
         self.update_downloads_ui()
 
     def update_downloads_ui(self):
-        """Updates the download status section."""
-        container = self.query_one("#active-downloads", Vertical)
-        
-        # We'll just show the active task and pending count for simplicity
+        """Updates the download status section without widget churn."""
         active = self.download_queue.active_task
-        container.query("Label").remove()
-        container.query("ProgressBar").remove()
+        status_label = self.query_one("#dl-status-label", Label)
+        progress_bar = self.query_one("#dl-progress-bar", ProgressBar)
         
         if active:
-            container.mount(Label(f"Downloading: {active.title}"))
-            pb = ProgressBar(total=100, show_eta=True)
-            pb.progress = active.progress
-            container.mount(pb)
+            status_label.update(f"Downloading: {active.title}")
+            progress_bar.progress = active.progress
+            progress_bar.display = True
         else:
             pending = self.download_queue.queue.qsize()
             if pending > 0:
-                container.mount(Label(f"Pending downloads: {pending}"))
+                status_label.update(f"Pending downloads: {pending}")
             else:
-                container.mount(Label("No active downloads."))
+                status_label.update("No active downloads.")
+            progress_bar.display = False
 
     async def on_input_submitted(self, message: Input.Submitted):
         if message.input.id == "search-input":
@@ -265,19 +262,26 @@ class YTBeatsApp(App):
         self.query_one("#status-label", Label).update("Stopped")
         self.notify("Queue cleared.")
 
+    @work(thread=True)
     def action_refresh_library(self):
-        """Scan download directory for songs."""
-        import os
-        lib_list = self.query_one("#library-list", ListView)
-        lib_list.clear()
-        
+        """Scan download directory for songs in the background."""
         down_dir = get_downloads_dir()
         files = []
-        for f in os.listdir(down_dir):
-            if f.endswith((".mp3", ".m4a", ".webm", ".opus")):
-                full_path = str(down_dir / f)
-                files.append(LibraryItem(f, full_path))
+        try:
+            for f in os.listdir(down_dir):
+                if f.endswith((".mp3", ".m4a", ".webm", ".opus")):
+                    full_path = str(down_dir / f)
+                    files.append(LibraryItem(f, full_path))
+        except Exception as e:
+            self.notify(f"Error scanning library: {e}", severity="error")
+            return
         
+        self.call_from_thread(self._update_library_list, files)
+
+    def _update_library_list(self, files):
+        """Updates the library list items on the main thread."""
+        lib_list = self.query_one("#library-list", ListView)
+        lib_list.clear()
         for item in files:
             lib_list.append(item)
         
