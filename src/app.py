@@ -77,8 +77,8 @@ class YTBeatsApp(App):
         
         if not self.engine:
             self.notify(f"Playback Engine Error: {self.engine_error}", severity="error")
-        else:
-            self.notify("YouTube Beats ready!")
+        if not self.downloader.check_ffmpeg():
+            self.notify("FFmpeg not found! Downloads will fail to convert to MP3.", severity="warning")
         
         # Start the update timer
         self.set_interval(0.5, self.update_status)

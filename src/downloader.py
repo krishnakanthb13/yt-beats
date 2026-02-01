@@ -45,6 +45,14 @@ class DownloadQueue:
                 
             self.active_task = task
             task.status = "downloading"
+            
+            # Check for FFmpeg before starting
+            if not self.check_ffmpeg():
+                task.status = "error"
+                task.error_msg = "FFmpeg not found. Audio conversion will fail."
+                if self.on_complete: self.on_complete(task)
+                continue
+                
             self._process_download(task)
             self.queue.task_done()
             self.active_task = None
@@ -144,5 +152,9 @@ class MusicDownloader:
             try:
                 info = ydl.extract_info(video_url, download=False)
                 return info['url']
-            except:
+            except Exception as e:
                 return None
+
+    def check_ffmpeg(self) -> bool:
+        """Checks if ffmpeg is available in the system path."""
+        return shutil.which("ffmpeg") is not None

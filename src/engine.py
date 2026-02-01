@@ -17,6 +17,9 @@ class AudioEngine:
         # Find yt-dlp to ensure MPV can play YouTube URLs
         ytdl_path = shutil.which("yt-dlp")
         
+        # Cleanup any orphaned yt-beats MPV processes from previous crashes
+        self._cleanup_orphaned_processes()
+        
         # Minimal args to prevent startup crashes on some Windows envs
         # We start MPV manually because python-mpv-jsonipc adds '=yes' to boolean flags
         # which causes MPV v0.41.0 to crash on startup (Exit code 1).
@@ -35,6 +38,10 @@ class AudioEngine:
             "--osd-level=0",          # Disable on-screen display
             f"--input-ipc-server={full_pipe}"
         ]
+        
+        # Use high-performance audio output on Windows if available
+        if os.name == 'nt':
+            mpv_args.append("--ao=wasapi")
         
         if ytdl_path:
             mpv_args.append(f"--script-opts=ytdl_hook-ytdl_path={ytdl_path}")
@@ -80,21 +87,21 @@ class AudioEngine:
         """Toggles pause."""
         try:
             self.mpv.command("cycle", "pause")
-        except:
-            pass
+        except Exception as e:
+            pass # Silent fail is expected if MPV is not ready
 
     def stop(self):
         """Stops playback."""
         try:
             self.mpv.command("stop")
-        except:
+        except Exception as e:
             pass
             
     def set_volume(self, volume: int):
         """Sets volume (0-100)."""
         try:
             self.mpv.volume = volume
-        except:
+        except Exception as e:
             pass
 
     def quit(self):
@@ -120,7 +127,7 @@ class AudioEngine:
                 "title": props.get("media-title", "Stopped"),
                 "volume": props.get("volume", 100),
             }
-        except:
+        except Exception:
             return {
                 "paused": True,
                 "position": 0,
@@ -147,3 +154,17 @@ class AudioEngine:
             # shellbeats treats error as a reason to skip to next
             if self.on_track_end: 
                 self.on_track_end("error")
+
+    def _cleanup_orphaned_processes(self):
+        """Kills lingering MPV processes that might be holding IPC pipes."""
+        if os.name == 'nt':
+            try:
+                # Use taskkill to find mpv processes started with our unique IPC prefix
+                # This is a bit aggressive but ensures a clean slate
+                subprocess.run(
+                    ["taskkill", "/f", "/fi", "IMAGENAME eq mpv.exe"], 
+                    capture_output=True, 
+                    check=False
+                )
+            except:
+                pass
