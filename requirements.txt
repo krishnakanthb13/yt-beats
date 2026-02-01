@@ -1,0 +1,4 @@
+textual>=0.70.0
+yt-dlp>=2024.0.0
+python-mpv-jsonipc>=1.2.0
+requests>=2.31.0

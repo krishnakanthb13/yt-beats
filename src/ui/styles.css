@@ -1,0 +1,80 @@
+Screen {
+    layout: vertical;
+    background: #121212;
+    color: #e0e0e0;
+}
+
+Header {
+    dock: top;
+    height: 1;
+    background: #304ffe;
+    /* Bright Blue */
+    color: white;
+    text-style: bold;
+}
+
+Footer {
+    dock: bottom;
+    height: 1;
+    background: #1e1e1e;
+    color: #888;
+}
+
+#search-bar {
+    dock: top;
+    height: 3;
+    padding: 0 1;
+    background: #1e1e1e;
+    border-bottom: solid #444;
+}
+
+Input {
+    border: solid #555;
+    background: #2a2a2a;
+    color: white;
+}
+
+Input:focus {
+    border: solid #304ffe;
+}
+
+#results-list {
+    height: 1fr;
+    border: solid #444;
+    background: #121212;
+    margin: 1;
+}
+
+.search-result {
+    padding: 1;
+    background: #1e1e1e;
+    color: #e0e0e0;
+    border: solid #333;
+    margin-bottom: 1;
+}
+
+.search-result:hover {
+    background: #2c2c2c;
+    border: solid #555;
+}
+
+#player-controls {
+    dock: bottom;
+    height: 3;
+    background: #202020;
+    border-top: solid #444;
+    padding: 1;
+    layout: horizontal;
+    align-vertical: middle;
+}
+
+Button {
+    background: #304ffe;
+    color: white;
+    margin-right: 2;
+}
+
+#status-label {
+    padding: 1;
+    color: #aaaaaa;
+}

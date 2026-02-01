@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Distribution / Build
+build/
+dist/
+*.spec
+
+# IDEs
+.vscode/
+.idea/
+
+# Project Specific
+mpv.log
+downloads/
+library.json
+Brain/
+task.md.resolved
+implementation_plan.md.resolved
+
+# OS
+.DS_Store
+Thumbs.db
