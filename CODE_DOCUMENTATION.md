@@ -28,7 +28,7 @@ yt-beats/
 YT-Beats follows a decoupled architecture where the UI, Downloader, and Playback Engine operate independently:
 
 - **UI Layer (Textual)**: Manages the Terminal User Interface, user input, and state visualization. It uses Workers to perform non-blocking operations.
-- **Downloader Layer (yt-dlp)**: Handles YouTube metadata extraction, search queries, and background download/conversion tasks.
+- **Downloader Layer (yt-dlp)**: Handles YouTube metadata extraction, search queries, and background download/conversion tasks. Requests are strictly limited to audio-only streams to save ~90% bandwidth.
 - **Playback Layer (MPV + IPC)**: Controls a background MPV process via JSON-IPC. This allows for stable, high-performance audio playback without blocking the TUI.
 
 ## 3. Core Modules & Functions
