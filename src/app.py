@@ -20,15 +20,11 @@ class YTBeatsApp(App):
         Binding("/", "focus_search", "Search"),
         Binding("space", "toggle_pause", "Pause / Resume", priority=True),
         Binding("r", "refresh_library", "Refresh Library"),
-        Binding("n", "next_track", "Next", priority=True),
-        Binding("p", "previous_track", "Prev", priority=True),
-        Binding("right", "next_track", "Next", show=False, priority=True),
-        Binding("left", "previous_track", "Prev", show=False, priority=True),
+        Binding("n", "next_track", "Next"),
+        Binding("p", "previous_track", "Prev"),
         Binding("c", "clear_queue", "Clear"),
-        Binding("]", "volume_up", "Vol +", show=False, priority=True),
-        Binding("[", "volume_down", "Vol -", show=False, priority=True),
-        Binding("up", "volume_up", "Vol +", show=False, priority=True),
-        Binding("down", "volume_down", "Vol -", show=False, priority=True),
+        Binding("[", "volume_down", "Vol -"),
+        Binding("]", "volume_up", "Vol +"),
     ]
 
     def __init__(self):

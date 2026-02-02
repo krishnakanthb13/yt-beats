@@ -52,9 +52,28 @@ Tabs {
     color: #94a3b8;
 }
 
-Tab.-active {
+Tabs>Tab {
+    padding: 0 2;
+    background: #1e293b;
+    color: #94a3b8;
+}
+
+Tabs>Tab:hover {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+Tabs>Tab.-active {
     color: #38bdf8;
     text-style: bold;
+    background: #1e293b;
+    border-bottom: tall #38bdf8;
+    tint: white 0%;
+}
+
+Tabs>Tab:focus {
+    background: #334155;
+    color: #38bdf8;
 }
 
 /* Search Area */
@@ -83,17 +102,27 @@ ListView {
 
 ListItem {
     padding: 0 1;
+    height: auto;
     background: transparent;
-    border-bottom: solid #1e293b;
 }
 
 ListItem:hover {
     background: #1e293b;
 }
 
-ListItem.--highlight {
-    background: #334155;
+/* Highlighted item - try multiple selectors for compatibility */
+ListItem.--highlight,
+ListItem.-highlight,
+ListItem:focus-within {
+    background: #475569;
     text-style: bold;
+    border-left: thick #38bdf8;
+}
+
+ListItem.--highlight Label,
+ListItem.-highlight Label,
+ListItem:focus-within Label {
+    color: #38bdf8 !important;
 }
 
 /* Items */
