@@ -109,6 +109,14 @@ ListItem.--highlight {
     text-style: italic;
 }
 
+.folder-path {
+    background: #1e293b;
+    color: #64748b;
+    padding: 0 1;
+    text-style: italic;
+    height: 1;
+}
+
 .queue-status {
     color: #38bdf8;
     text-style: bold;

@@ -26,7 +26,6 @@ class LibraryItem(ListItem):
 
     def compose(self) -> ComposeResult:
         yield Label(self.title, classes="library-title")
-        yield Label(self.path, classes="library-path")
 
 class QueueItem(ListItem):
     def __init__(self, title: str, status: str):

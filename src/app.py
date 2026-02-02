@@ -58,6 +58,7 @@ class YTBeatsApp(App):
                         yield SearchBar(id="search-bar")
                         yield ListView(id="results-list")
                     with TabPane("Library", id="library-tab"):
+                        yield Label(str(get_downloads_dir()), id="library-folder-path", classes="folder-path")
                         yield ListView(id="library-list")
                     with TabPane("Downloads", id="downloads-tab"):
                         yield ListView(id="downloads-list")
