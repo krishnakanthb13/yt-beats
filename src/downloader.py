@@ -84,16 +84,25 @@ class DownloadQueue:
         
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                # Extract info and download
                 info = ydl.extract_info(task.url, download=True)
-                task.filename = ydl.prepare_filename(info).replace('.webm', '.mp3').replace('.m4a', '.mp3')
+                
+                # Predict the final filename after MP3 conversion
+                # yt-dlp prepare_filename gives the original, we swap extension to .mp3
+                base_path = ydl.prepare_filename(info)
+                final_filename = os.path.splitext(base_path)[0] + ".mp3"
+                
+                task.filename = final_filename
                 task.status = "completed"
                 task.progress = 100.0
+                
                 if self.on_complete:
                     self.on_complete(task)
         except Exception as e:
             task.status = "error"
             task.error_msg = str(e)
-            print(f"Download error: {e}")
+            if self.on_complete:
+                self.on_complete(task)
 
     def _progress_hook(self, d, task):
         if d['status'] == 'downloading':

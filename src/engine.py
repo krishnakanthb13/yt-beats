@@ -14,11 +14,23 @@ class AudioEngine:
         if not self.mpv_path:
             raise RuntimeError("mpv is not installed or not in PATH.")
             
-        # Find yt-dlp to ensure MPV can play YouTube URLs
-        ytdl_path = shutil.which("yt-dlp")
+        # PID file for orphan cleanup on Windows
+        self.pid_file = get_app_data_dir() / "engine.pid"
         
         # Cleanup any orphaned yt-beats MPV processes from previous crashes
         self._cleanup_orphaned_processes()
+        
+        # Register atexit as a safety net
+        import atexit
+        atexit.register(self.quit)
+        
+        # Handle console closure signals on Windows
+        if os.name == 'nt':
+            import signal
+            def handle_signal(sig, frame):
+                self.quit()
+            signal.signal(signal.SIGBREAK, handle_signal)
+            signal.signal(signal.SIGTERM, handle_signal)
         
         # Minimal args to prevent startup crashes on some Windows envs
         # We start MPV manually because python-mpv-jsonipc adds '=yes' to boolean flags
@@ -74,6 +86,14 @@ class AudioEngine:
         if not connected:
             self.quit()
             raise RuntimeError(f"Could not connect to MPV IPC on: {self.ipc_path}")
+            
+        # Store PID for future cleanup
+        if self.process:
+            try:
+                with open(self.pid_file, "w") as f:
+                    f.write(str(self.process.pid))
+            except:
+                pass
                        
         # Configure MPV properties via IPC
         # self.mpv.command("set_property", "keep-open", "yes") # Removed to allow clean EOF transitions
@@ -152,6 +172,12 @@ class AudioEngine:
                 os.remove(self.ipc_path)
             except:
                 pass
+        # Cleanup PID file
+        if hasattr(self, 'pid_file') and self.pid_file.exists():
+            try:
+                os.remove(self.pid_file)
+            except:
+                pass
             
     def get_status(self) -> Dict[str, Any]:
         """Returns playback status."""
@@ -200,7 +226,31 @@ class AudioEngine:
                 self.on_error("MPV Playback Error")
 
     def _cleanup_orphaned_processes(self):
-        """No-op by default to avoid killing other MPV instances. 
-        Unique pipe names are used to prevent conflicts."""
-        # Cleanup logic is now handled by process tracking and quit()
-        pass
+        """Aggressively kills all MPV instances to ensure a clean start."""
+        # 1. Kill by PID file (specific cleanup)
+        if hasattr(self, 'pid_file') and self.pid_file.exists():
+            try:
+                with open(self.pid_file, "r") as f:
+                    old_pid = int(f.read().strip())
+                if os.name == 'nt':
+                    subprocess.run(["taskkill", "/F", "/T", "/PID", str(old_pid)], 
+                                   capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                else:
+                    os.kill(old_pid, 9)
+            except:
+                pass
+            finally:
+                try: os.remove(self.pid_file)
+                except: pass
+
+        # 2. Kill all MPV instances by name (system-wide cleanup)
+        try:
+            if os.name == 'nt':
+                # Kill all mpv.exe instances
+                subprocess.run(["taskkill", "/F", "/IM", "mpv.exe", "/T"], 
+                               capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            else:
+                # Kill all mpv processes
+                subprocess.run(["pkill", "-9", "mpv"], capture_output=True)
+        except:
+            pass

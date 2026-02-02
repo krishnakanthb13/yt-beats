@@ -84,12 +84,11 @@ class YTBeatsApp(App):
         if not self.downloader.check_ffmpeg():
             self.notify("FFmpeg not found! Downloads will fail to convert to MP3.", severity="warning")
         
+        # Bind queue callbacks
+        self.download_queue.on_complete = lambda task: self.call_from_thread(self._on_download_complete, task)
+        
         # Start the update timer
         self.set_interval(0.5, self.update_status)
-        
-        # Bind queue callbacks
-        # Note: These run in thread, so we'll need call_from_thread to update UI safely if we were doing it directly.
-        # But we perform polling update in update_status for simplicity in Textual.
 
     def update_status(self):
         """Periodic UI update."""
@@ -140,6 +139,15 @@ class YTBeatsApp(App):
                 status_label.update("No active downloads.")
             progress_bar.display = False
 
+    def _on_download_complete(self, task):
+        """Handle download completion (success or error)."""
+        if task.status == "completed":
+            self.notify(f"Download complete: {task.title}")
+            # Auto-refresh library so the new song shows up
+            self.action_refresh_library()
+        else:
+            self.notify(f"Download failed: {task.title}\n{task.error_msg}", severity="error")
+            
     async def on_input_submitted(self, message: Input.Submitted):
         if message.input.id == "search-input":
             query = message.value
