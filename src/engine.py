@@ -76,7 +76,7 @@ class AudioEngine:
             raise RuntimeError(f"Could not connect to MPV IPC on: {self.ipc_path}")
                        
         # Configure MPV properties via IPC
-        self.mpv.command("set_property", "keep-open", "yes") # Don't exit on partial errors
+        # self.mpv.command("set_property", "keep-open", "yes") # Removed to allow clean EOF transitions
         
         # Event handling strategies from shellbeats
         self.ignore_events_until = 0.0
@@ -88,9 +88,8 @@ class AudioEngine:
         
     def play(self, url: str):
         """Plays a URL (stream or local file)."""
-        # Grace period logic: Ignore events for 3 seconds to avoid
-        # spurious 'end-file' during buffering/loading
-        self.ignore_events_until = time.time() + 3.0
+        # Briefly ignore events to avoid the 'redirect/stop' from loading a new file
+        self.ignore_events_until = time.time() + 0.2
         
         try:
             # Check if it's already playing this URL to avoid restart?
@@ -129,16 +128,18 @@ class AudioEngine:
             pass
 
     def quit(self):
-        """Terminates the MPV process."""
-        try:
-            self.mpv.terminate()
-        except:
-            pass
-        try:
-            if self.process:
+        """Terminates the MPV process and cleans up IPC."""
+        if hasattr(self, 'mpv'):
+            try:
+                self.mpv.terminate()
+            except:
+                pass
+        
+        if hasattr(self, 'process') and self.process:
+            try:
                 self.process.terminate()
-        except:
-            pass
+            except:
+                pass
             
         # Cleanup Unix socket file
         if os.name != 'nt' and hasattr(self, 'ipc_path') and os.path.exists(self.ipc_path):
@@ -149,14 +150,24 @@ class AudioEngine:
             
     def get_status(self) -> Dict[str, Any]:
         """Returns playback status."""
+        if not hasattr(self, 'mpv'):
+            return {"paused": True, "position": 0, "duration": 0, "title": "Stopped", "volume": 100}
+
         try:
-            # Fetch properties; use default values if None is returned
-            p = self.mpv.get_properties(["pause", "time-pos", "duration", "media-title", "volume"])
+            # Fetch properties individually for maximum library compatibility
+            props = ["pause", "time-pos", "duration", "media-title", "volume"]
+            p = {}
+            for prop in props:
+                try:
+                    p[prop] = self.mpv.get_property(prop)
+                except:
+                    p[prop] = None
+
             return {
                 "paused": p.get("pause", False) or False,
                 "position": float(p.get("time-pos", 0) or 0),
                 "duration": float(p.get("duration", 0) or 0),
-                "title": p.get("media-title", "Stopped") or "Stopped",
+                "title": p.get("media-title", None) or "Stopped",
                 "volume": int(p.get("volume", 100) or 100),
             }
         except Exception:
@@ -176,16 +187,12 @@ class AudioEngine:
         reason = event_data.get("reason", "unknown")
         
         # 'eof' means natural end, 'error' means stream failed
-        if reason == "eof":
+        # 'stop' can also happen if the file is very short/weird
+        if reason in ("eof", "error"):
             if self.on_track_end:
-                self.on_track_end("eof")
-        elif reason == "error":
-            if self.on_error:
-                self.on_error("MPV Stream Error")
-            # Also treat error as track end to advance playlist?
-            # shellbeats treats error as a reason to skip to next
-            if self.on_track_end: 
-                self.on_track_end("error")
+                self.on_track_end(reason)
+            if reason == "error" and self.on_error:
+                self.on_error("MPV Playback Error")
 
     def _cleanup_orphaned_processes(self):
         """No-op by default to avoid killing other MPV instances. 

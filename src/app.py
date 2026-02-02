@@ -195,8 +195,11 @@ class YTBeatsApp(App):
         queue_list = self.query_one("#queue-list", ListView)
         queue_list.append(QueueItem(title, "Pending"))
         
-        # If nothing is playing, start playing immediately
-        if self.current_index == -1:
+        # If nothing is playing, or we've reached the end of the queue and stopped, start playing.
+        queue_finished = (self.current_index >= len(self.current_playlist) - 2 and 
+                         self.engine and self.engine.get_status()["title"] == "Stopped")
+        
+        if self.current_index == -1 or queue_finished:
             self.action_next_track()
         else:
             self.notify(f"Queued: {title}")
