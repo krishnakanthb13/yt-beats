@@ -19,6 +19,7 @@ A keyboard-driven music experience designed for speed and focus. YT-Beats combin
 ## specific Requirements
 - Python 3.9+
 - [mpv](https://mpv.io/) connected to system PATH
+- [ffmpeg](https://ffmpeg.org/) (Required for MP3 conversion)
 
 ## Installation
 
@@ -34,16 +35,24 @@ pip install -r requirements.txt
 - **Manual**: `python -m src.app`
 
 ### Controls
-- **Search**: The cursor starts in the search bar. Type your query and press **Enter**.
-- **Navigate**: Use **Up/Down** arrows to browse results.
+- **Navigation**: Use **Arrow Keys** (Up/Down/Left/Right) to browse results and switch between tabs.
+- **Search**: Press **/** to focus the search bar. Type and press **Enter**.
 - **Play**: Press **Enter** on a result to start streaming.
-- **Download**: Press **d** on a result to download the audio to your local library.
-- **Quit**: Press **Ctrl+C** or type `q`.
+- **Next/Prev**: Press **n** for Next track, **p** for Previous track.
+- **Volume**: Press **]** to increase volume, **[** to decrease volume.
+- **Pause/Resume**: Press **Space**.
+- **Download**: Press **d** on a result to download high-quality audio to your local library.
+- **Refresh Library**: Press **r** to scan your download folder.
+- **Clear Queue**: Press **c**.
+- **Quit**: Press **q**.
 
 ### Features
-- **Minimalism**: Focus on the music. No album art (yet), no complicated playlists—just search, play, and queue.
-- **Bandwidth Efficiency**: Only request what is needed. By strictly requesting audio streams and ignoring video data, YT-Beats reduces network usage by up to 90% compared to a standard web browser by requesting pure audio containers (Opus/AAC/M4A).
-- **Process Decoupling**: By running MPV as a separate process, we ensure that if the TUI crashes, the music keeps playing, and vice-versa. It also allows us to leverage MPV's hardware-accelerated audio processing.
+- **Modern Tabbed TUI**: Effortlessly switch between YouTube Search, Local Library, and Active Downloads.
+- **Smart Duplicate Prevention**: Automatically checks your library using Video IDs to prevent re-downloading existing songs.
+- **Bandwidth Optimized**: Streams and downloads pure audio data only, bypassing 90% of typical video bandwidth.
+- **Process Decoupling**: Uses MPV as a background process; your music keeps playing even if the UI refreshes.
+- **High-Contrast Design**: Optimized for readability with a sleek, cyan-accented slate theme.
+
 
 **Note**: You must have `mpv` installed for audio playback.
 

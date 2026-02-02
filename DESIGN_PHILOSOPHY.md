@@ -8,21 +8,21 @@ YT-Beats aims to provide a "Zen-like" music experience directly in the terminal.
 
 ## 3. Design Principles
 
-- **Keyboard First**: Every action should be accessible via shortcuts. The mouse is optional, never required.
+- **Keyboard First**: Every action should be accessible via shortcuts. The mouse is optional, never required. The latest navigation system (Arrow keys for context, single-letter commands for action) maximizes speed for power users.
 - **Async by Default**: The UI must never freeze. Search, playback initialization, and downloads occur in background threads to ensure a snappy TUI.
-- **Minimalism**: Focus on the music. No album art (yet), no complicated playlists—just search, play, and queue.
-- **Bandwidth Efficiency**: Only request what is needed. By strictly requesting audio streams and ignoring video data, YT-Beats reduces network usage by up to 90% compared to a standard web browser by requesting pure audio containers (Opus/AAC/M4A).
-- **Process Decoupling**: By running MPV as a separate process, we ensure that if the TUI crashes, the music keeps playing, and vice-versa. It also allows us to leverage MPV's hardware-accelerated audio processing.
+- **Minimalism & Focus**: Focus on the music. By moving to a tabbed interface, we categorize the experience (Discover, Keep, Manage) without cluttering the screen with unnecessary widgets.
+- **Bandwidth Efficiency**: Only request what is needed. By strictly requesting audio streams and ignoring video data, YT-Beats reduces network usage by up to 90% compared to a standard web browser.
+- **TUI Aesthetics**: Efficiency shouldn't mean ugliness. We use a curated high-contrast slate-and-cyan theme to provide a premium, modern feel that competes with graphical desktop apps.
 
 ## 4. Target Audience & Use Cases
 - **Developers & Power Users**: Those who spend their day in the terminal and want low-overhead music controls.
 - **Resource-Constrained Systems**: Users who want to listen to YouTube without the CPU/RAM penalty of a modern web browser.
-- **Offline Enthusiasts**: Users who want to quickly "keep" a song they just discovered by downloading it as a high-quality MP3.
+- **Library Builders**: Users who want to quickly "keep" a song they just discovered by downloading it as a high-quality MP3 with smart duplicate prevention.
 
 ## 5. Real-World Workflow Fit
-YT-Beats is designed to be "launched and forgotten." You search for a lo-fi beat or a full album, start it, and switch back to your coding IDE. The status bar in the terminal provides just enough information (track title and progress) without being distracting.
+YT-Beats is designed to be "launched and forgotten." The status bar provides just enough information (track title and progress) without being distracting. The focus is on getting to the music in under 3 seconds—search, hit enter, and get back to work.
 
 ## 6. Trade-offs & Constraints
-- **Dependency Heavy**: Relying on `mpv`, `yt-dlp`, and `ffmpeg` means the user has more initial setup, but the result is a much more robust and feature-rich experience than a pure-Python player.
-- **TUI Limitations**: Being a terminal app, we trade visual flashiness (gradients, images) for speed, efficiency, and focus.
-- **IPC over Native Bindings**: We use IPC to control MPV instead of native C-bindings (`python-mpv`). This was a conscious choice to avoid the common "segmentation fault" errors found in native Python-MPV wrappers on Windows and macOS.
+- **Dependency Heavy**: Relying on `mpv`, `yt-dlp`, and `ffmpeg` means the user has more initial setup, but the result is a much more robust experience than a pure-Python player.
+- **Process Decoupling**: We use IPC to control MPV instead of native bindings. This ensures that the music keeps playing even if the UI refreshes or the terminal is resized, providing the stability of a background service with the controls of a TUI.
+

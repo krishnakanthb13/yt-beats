@@ -6,62 +6,60 @@
 yt-beats/
 ├── src/
 │   ├── ui/
-│   │   ├── __init__.py
-│   │   ├── styles.css         # Vanilla CSS for the Textual TUI
-│   │   └── widgets.py        # Custom Textual widgets (SearchBar, PlayerControls, etc.)
-│   ├── __init__.py
-│   ├── app.py                # Main application entry point and TUI logic
-│   ├── config.py             # Configuration and path management
-│   ├── downloader.py          # yt-dlp wrapper for searching and downloading
-│   ├── engine.py              # MPV-based audio playback engine
-│   └── library.py             # Local library management (scanning)
-├── .gitignore                # Git exclusion rules
-├── LICENSE                   # GNU GPL v3 License
-├── README.md                 # Project overview and quick start
+│   │   ├── styles.css         # Modern Slate Theme (Cyan/Slate)
+│   │   └── widgets.py        # Custom Widgets (SearchBar, SearchResultItem, etc.)
+│   ├── app.py                # App Logic: TUI, Event Loop, Library Scanning
+│   ├── config.py             # Binary Discovery (mpv, ffmpeg) & Pathing
+│   ├── downloader.py          # yt-dlp layer, DownloadQueue, & ID matching
+│   ├── engine.py              # MPV JSON-IPC playback manager
+│   └── __init__.py           # Package init
+├── .gitignore                # Excludes virtualenvs, downloads, and .txt logs
+├── LICENSE                   # GNU GPL v3
+├── README.md                 # User guide & Features
 ├── requirements.txt          # Python dependencies
-├── YT-Beats.bat              # Windows launcher
-└── YT-Beats.sh               # Unix/macOS launcher
+├── YT-Beats.bat              # Windows Launcher
+└── YT-Beats.sh               # macOS/Linux Launcher
 ```
 
 ## 2. High-Level Architecture
 
-YT-Beats follows a decoupled architecture where the UI, Downloader, and Playback Engine operate independently:
+YT-Beats uses a **Decoupled Worker Architecture**:
 
-- **UI Layer (Textual)**: Manages the Terminal User Interface, user input, and state visualization. It uses Workers to perform non-blocking operations.
-- **Downloader Layer (yt-dlp)**: Handles YouTube metadata extraction, search queries, and background download/conversion tasks. Requests are strictly limited to audio-only streams to save ~90% bandwidth.
-- **Playback Layer (MPV + IPC)**: Controls a background MPV process via JSON-IPC. This allows for stable, high-performance audio playback without blocking the TUI.
+-   **Frontend (Textual)**: React-like TUI that uses CSS for styling. It handles navigation across three core tabs: **YouTube**, **Library**, and **Downloads**.
+-   **Extraction (yt-dlp)**: High-speed metadata extraction. It filters for `bestaudio` to minimize data overhead.
+-   **Audio Backend (MPV)**: Runs as an independent process. The Python app controls it via a JSON-over-TCP IPC bridge.
+-   **Worker Threads**: Critical tasks (Searching, Local File Scanning, Downloading) run in background workers to keep the UI at a constant 60fps.
 
 ## 3. Core Modules & Functions
 
-| Module | Class/Function | Description |
+| Module | Purpose | Key Feature |
 | :--- | :--- | :--- |
-| `app.py` | `YTBeatsApp` | The main Textual application class. Coordinates UI events and background tasks. |
-| `engine.py` | `AudioEngine` | Manages the lifecycle of the MPV process and handles playback commands via IPC. |
-| `downloader.py`| `MusicDownloader`| Provides search functionality and direct stream URL extraction. |
-| `downloader.py`| `DownloadQueue` | Manages a background thread for sequential file downloads and MP3 conversion. |
-| `config.py` | `get_downloads_dir`| Ensures the cross-platform download directory exists and returns its path. |
+| `app.py` | Main Orchestrator | Manages tabbed content and playback queue. |
+| `engine.py` | Audio Engine | Polling-based position and volume updates. |
+| `downloader.py`| YouTube Layer | `DownloadQueue` prevents duplicates via Video ID extraction. |
+| `config.py` | Configuration | Automatically locates `mpv.exe` and `ffmpeg.exe` on Windows/Unix. |
+| `widgets.py` | UI Components | Lightweight ListItem wrappers with cyan-accented highlights. |
 
-## 4. Data Flow
+## 4. Execution Flow
 
-1. **User Search**: Input -> `YTBeatsApp.perform_search` -> `MusicDownloader.search` -> Results returned to ListView.
-2. **Streaming**: Selection -> `YTBeatsApp.enqueue` -> `AudioEngine.play(url)` -> MPV process starts playback.
-3. **Downloading**: Selection -> `DownloadQueue.add` -> `yt-dlp` download -> `ffmpeg` conversion -> Saved to local library.
-4. **Library Refresh**: `action_refresh_library` -> `os.listdir` -> `LibraryItem` creation -> ListView update.
+1.  **Init**: `app.py` starts, initializes `AudioEngine` (spawning MPV) and `DownloadQueue`.
+2.  **Startup Check**: `DownloadQueue` verifies `ffmpeg` presence for later MP3 conversions.
+3.  **Library Scan**: A background worker scans the `downloads/` folder for existing media.
+4.  **Playback Loop**: Every 0.5s, the app polls MPV for current title, position, and duration to update the progress bar.
+5.  **Shutdown**: `on_unmount` sends a `quit` command to MPV and cleans up IPC sockets.
 
-## 5. Dependencies
+## 5. Platform-Specific Implementations (Windows)
 
-### Runtime
-- `textual`: TUI framework.
-- `yt-dlp`: YouTube extraction and downloading.
-- `python-mpv-jsonipc`: MPV IPC bridge.
-- `mpv`: (System) Media player process.
-- `ffmpeg`: (System) Audio conversion utility.
+To ensure stability on Windows, several specific optimizations are implemented:
+- **Binary Discovery**: `config.py` includes a fallback mechanism for locating `mpv.exe` across common install paths (Chocolatey, custom folders) if the system PATH check fails.
+- **IPC over Named Pipes**: Uses `\\.\pipe\ytbeats-XXXXXX` for high-reliability communication on Windows, avoiding the overhead of local network sockets.
+- **Aggressive Cleanup**: `engine.py` performs a multi-layer process cleanup on startup (via PID file and Taskkill) to prevent zombie MPV processes from sticking around.
+- **Low-Latency Audio**: Explicitly requests the `wasapi` audio output (`--ao=wasapi`) for high-performance audio on Windows.
 
-## 6. Execution Flow
+## 6. Debugging & Logs
 
-1. `app.py` is executed.
-2. `YTBeatsApp.__init__` initializes the `AudioEngine` (spawning MPV) and `DownloadQueue`.
-3. `on_mount` focuses the search bar and scans the local library.
-4. `update_status` starts a 0.5s interval to poll MPV for playback position/title and update UI labels.
-5. User interactively triggers searches, playback, or downloads.
-6. `on_unmount` ensures the MPV process is gracefully terminated.
+The app manages several runtime log files to capture errors without interrupting the user (all ignored by git):
+- `crash.log`: Fatal application crashes or startup failures.
+- `download_worker_error.txt`: Detailed error backtraces from the background download thread.
+- `ui_critical_error.txt`: Errors specifically related to Textual CSS or UI widget updates.
+- `callback_error.txt`: Issues within the download completion event handlers.
