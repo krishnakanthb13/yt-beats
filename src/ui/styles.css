@@ -212,3 +212,34 @@ ProgressBar>.progress--bar {
 ProgressBar>.progress--bar-value {
     background: #38bdf8;
 }
+
+/* Downloads Tab Styling */
+.dl-item-container {
+    height: 1;
+    padding: 0 1;
+}
+
+.dl-title {
+    width: 1fr;
+    color: #f8fafc;
+}
+
+.dl-status {
+    width: 12;
+    margin-left: 2;
+    color: #94a3b8;
+    text-align: right;
+}
+
+.dl-progress {
+    width: 15;
+    margin-left: 2;
+}
+
+.dl-progress>.progress--bar {
+    background: #1e293b;
+}
+
+.dl-progress>.progress--bar-value {
+    background: #10b981;
+}

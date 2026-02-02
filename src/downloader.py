@@ -31,11 +31,41 @@ class DownloadQueue:
         self.on_complete: Optional[Callable[[DownloadTask], None]] = None
         
     def add(self, url: str, title: str, playlist_name: str = None):
-        """Adds a song to the download queue."""
+        """Adds a song to the download queue. Returns None if already downloaded."""
+        # Extract video ID from URL for duplicate detection
+        video_id = self._extract_video_id(url)
+        
+        if video_id and self.is_already_downloaded(video_id):
+            return None  # Already exists
+        
         task = DownloadTask(url, title, playlist_name)
         self.tasks.append(task)
         self.queue.put(task)
         return task
+    
+    def _extract_video_id(self, url: str) -> Optional[str]:
+        """Extract YouTube video ID from URL."""
+        import re
+        patterns = [
+            r'(?:v=|/v/|youtu\.be/)([a-zA-Z0-9_-]{11})',
+            r'(?:embed/)([a-zA-Z0-9_-]{11})',
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                return match.group(1)
+        return None
+    
+    def is_already_downloaded(self, video_id: str) -> bool:
+        """Check if a video with this ID already exists in downloads."""
+        try:
+            for f in os.listdir(self.download_dir):
+                # Files are saved as "title_[videoId].mp3"
+                if f"[{video_id}]" in f:
+                    return True
+        except:
+            pass
+        return False
         
     def _worker_loop(self):
         while not self._stop_event.is_set():
@@ -43,20 +73,39 @@ class DownloadQueue:
                 task = self.queue.get(timeout=1.0)
             except queue.Empty:
                 continue
-                
-            self.active_task = task
-            task.status = "downloading"
             
-            # Check for FFmpeg before starting
-            if not self.check_ffmpeg():
-                task.status = "error"
-                task.error_msg = "FFmpeg not found. Audio conversion will fail."
-                if self.on_complete: self.on_complete(task)
-                continue
+            try:
+                self.active_task = task
+                task.status = "downloading"
                 
-            self._process_download(task)
-            self.queue.task_done()
-            self.active_task = None
+                # Check for FFmpeg before starting
+                if not self.check_ffmpeg():
+                    task.status = "error"
+                    task.error_msg = "FFmpeg not found. Audio conversion will fail."
+                    if self.on_complete: self.on_complete(task)
+                    self.queue.task_done()
+                    self.active_task = None
+                    continue
+                    
+                self._process_download(task)
+                self.queue.task_done()
+                self.active_task = None
+            except Exception as e:
+                # Log any unexpected errors to file for debugging
+                task.status = "error"
+                task.error_msg = str(e)
+                with open("download_worker_error.txt", "a") as f:
+                    f.write(f"Worker error: {e}\n")
+                if self.on_complete: self.on_complete(task)
+                try:
+                    self.queue.task_done()
+                except:
+                    pass
+                self.active_task = None
+    
+    def check_ffmpeg(self) -> bool:
+        """Checks if ffmpeg is available in the system path."""
+        return shutil.which("ffmpeg") is not None
             
     def _process_download(self, task: DownloadTask):
         """Downloads the video using yt-dlp."""

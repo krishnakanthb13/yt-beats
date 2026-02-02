@@ -4,14 +4,13 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.binding import Binding
 from textual import work
 
-from .ui.widgets import SearchBar, PlayerControls, SearchResultItem, QueueItem, DownloadStatus, LibraryItem
+from .ui.widgets import SearchBar, PlayerControls, SearchResultItem, QueueItem, LibraryItem
 from .downloader import MusicDownloader, DownloadQueue
 from .engine import AudioEngine
 from .config import get_downloads_dir
 
-import threading
-import time
 import os
+
 
 class YTBeatsApp(App):
     CSS_PATH = "ui/styles.css"
@@ -54,18 +53,19 @@ class YTBeatsApp(App):
         with Container(id="main-container"):
             # Left Pane: Search & Library
             with Vertical(id="left-pane"):
-                with TabbedContent(initial="search-tab"):
+                with TabbedContent(initial="search-tab", id="main-tabs"):
                     with TabPane("YouTube", id="search-tab"):
                         yield SearchBar(id="search-bar")
                         yield ListView(id="results-list")
                     with TabPane("Library", id="library-tab"):
                         yield ListView(id="library-list")
+                    with TabPane("Downloads", id="downloads-tab"):
+                        yield ListView(id="downloads-list")
                 
-            # Right Pane: Queue & Downloads
+            # Right Pane: Queue
             with Vertical(id="right-pane"):
                 yield Label("Up Next", classes="section-header")
                 yield ListView(id="queue-list")
-                yield DownloadStatus()
                 
         yield PlayerControls(id="player-controls")
         yield Footer()
@@ -92,61 +92,102 @@ class YTBeatsApp(App):
 
     def update_status(self):
         """Periodic UI update."""
-        # 1. Update Playback Status
-        if self.engine:
-            status = self.engine.get_status()
-            
-            # Update labels
-            title = status.get("title", "Stopped")
-            paused = status.get("paused", False)
-            
-            status_text = "Paused" if paused else "Playing" 
-            if title == "Stopped": status_text = "Stopped"
-            
-            self.query_one("#status-label", Label).update(f"{status_text}: {title}")
-            
-            # Update Progress
-            pos = status.get("position", 0)
-            dur = status.get("duration", 0)
-            pb = self.query_one("#track-progress", ProgressBar)
-            if dur > 0:
-                pb.update(total=dur, progress=pos)
-            else:
-                pb.update(total=100, progress=0)
+        try:
+            # 1. Update Playback Status
+            if self.engine:
+                status = self.engine.get_status()
+                title = status.get("title", "Stopped")
+                paused = status.get("paused", False)
+                status_text = "Paused" if paused else "Playing" 
+                if title == "Stopped": status_text = "Stopped"
+                
+                self.query_one("#status-label", Label).update(f"{status_text}: {title}")
+                
+                pos = status.get("position", 0)
+                dur = status.get("duration", 0)
+                pb = self.query_one("#track-progress", ProgressBar)
+                if dur > 0:
+                    pb.update(total=dur, progress=pos)
+                else:
+                    pb.update(total=100, progress=0)
 
-            # Update Volume Label
-            vol = status.get("volume", 100)
-            self.query_one("#vol-label", Label).update(f"Vol: {vol}%")
-            
-        # 2. Update Downloads
-        self.update_downloads_ui()
+                vol = status.get("volume", 100)
+                self.query_one("#vol-label", Label).update(f"Vol: {vol}%")
+                
+            # 2. Update Downloads
+            self.update_downloads_ui()
+        except:
+            # Silent fail for the timer to prevent crash
+            pass
 
     def update_downloads_ui(self):
-        """Updates the download status section without widget churn."""
-        active = self.download_queue.active_task
-        status_label = self.query_one("#dl-status-label", Label)
-        progress_bar = self.query_one("#dl-progress-bar", ProgressBar)
+        """Updates the download list with all active and pending tasks."""
+        try:
+            dl_list = self.query_one("#downloads-list", ListView)
+        except:
+            return
+
+        tasks = self.download_queue.tasks
         
-        if active:
-            status_label.update(f"Downloading: {active.title}")
-            progress_bar.progress = active.progress
-            progress_bar.display = True
-        else:
-            pending = self.download_queue.queue.qsize()
-            if pending > 0:
-                status_label.update(f"Pending downloads: {pending}")
+        try:
+            # If the list count mismatch, fully rebuild (safest)
+            if len(dl_list.children) != len(tasks):
+                dl_list.clear() # Clear existing
+                
+                for i, task in enumerate(tasks):
+                    # Unique IDs based on task id
+                    t_id = id(task)
+                    
+                    # Create ProgressBar without initial progress (set after)
+                    pb = ProgressBar(total=100, classes="dl-progress", id=f"pb-{t_id}")
+                    
+                    # Create generic ListItem with known children IDs
+                    item = ListItem(
+                        Horizontal(
+                            Label(task.title, classes="dl-title"),
+                            Label(task.status.capitalize(), classes="dl-status", id=f"lbl-status-{t_id}"),
+                            pb,
+                            classes="dl-item-container"
+                        )
+                    )
+                    dl_list.append(item)
             else:
-                status_label.update("No active downloads.")
-            progress_bar.display = False
+                # Update loop
+                for task in tasks:
+                    t_id = id(task)
+                    try:
+                        # Find the widgets by ID in the whole list view 
+                        # (querying by ID is safer than index dependence)
+                        status_lbl = dl_list.query_one(f"#lbl-status-{t_id}", Label)
+                        pb = dl_list.query_one(f"#pb-{t_id}", ProgressBar)
+                        
+                        status_text = task.status.capitalize()
+                        if task.status == "error":
+                            status_text = "Failed"
+                            
+                        status_lbl.update(status_text)
+                        pb.progress = task.progress
+                    except:
+                        # If a single item fails, ignore it
+                        continue
+
+        except Exception as e:
+            # Log critical UI errors but don't crash
+            with open("ui_critical_error.txt", "a") as f: # Append mode
+                f.write(f"Error in update: {e}\n")
 
     def _on_download_complete(self, task):
         """Handle download completion (success or error)."""
-        if task.status == "completed":
-            self.notify(f"Download complete: {task.title}")
-            # Auto-refresh library so the new song shows up
-            self.action_refresh_library()
-        else:
-            self.notify(f"Download failed: {task.title}\n{task.error_msg}", severity="error")
+        try:
+            if task.status == "completed":
+                self.notify(f"Download complete: {task.title}")
+                # Auto-refresh library so the new song shows up
+                self.action_refresh_library()
+            else:
+                self.notify(f"Download failed: {task.title}\n{task.error_msg}", severity="error")
+        except Exception as e:
+            with open("callback_error.txt", "w") as f:
+                f.write(str(e))
             
     async def on_input_submitted(self, message: Input.Submitted):
         if message.input.id == "search-input":
@@ -315,14 +356,52 @@ class YTBeatsApp(App):
 
     def action_download_selected(self):
         """Download the selected item in the list."""
-        list_view = self.query_one("#results-list", ListView)
-        if list_view.has_focus and list_view.highlighted_child:
-            item = list_view.highlighted_child
-            if isinstance(item, SearchResultItem):
-                url = f"https://www.youtube.com/watch?v={item.video_id}"
-                self.download_queue.add(url, item.title)
-                self.notify(f"Added to download queue: {item.title}")
-                self.update_downloads_ui()
+        try:
+            # Try to find the highlighted item in either results or the active queue
+            focused = self.focused
+            if not focused: return
+
+            # Case 1: Downloading from Search Results
+            results_list = self.query_one("#results-list", ListView)
+            if results_list.has_focus and results_list.highlighted_child:
+                item = results_list.highlighted_child
+                if isinstance(item, SearchResultItem):
+                    url = f"https://www.youtube.com/watch?v={item.video_id}"
+                    task = self.download_queue.add(url, item.title)
+                    if task is None:
+                        self.notify(f"Already in library: {item.title}", severity="warning")
+                    else:
+                        self.notify(f"Added to Downloads: {item.title}")
+                        # Switch tab to show it
+                        try:
+                            self.query_one("#main-tabs", TabbedContent).active = "downloads-tab"
+                        except:
+                            pass
+                    return
+
+            # Case 2: Downloading from the active Queue (Up Next)
+            queue_list = self.query_one("#queue-list", ListView)
+            if queue_list.has_focus and queue_list.highlighted_child:
+                idx = queue_list.index
+                if idx is not None and 0 <= idx < len(self.current_playlist):
+                    track = self.current_playlist[idx]
+                    if track["type"] == "streaming":
+                        task = self.download_queue.add(track["url"], track["title"])
+                        if task is None:
+                            self.notify(f"Already in library: {track['title']}", severity="warning")
+                        else:
+                            self.notify(f"Downloading from Queue: {track['title']}")
+                            try:
+                                self.query_one("#main-tabs", TabbedContent).active = "downloads-tab"
+                            except:
+                                pass
+                    else:
+                        self.notify("This song is already a local file.")
+        except Exception as e:
+            import traceback
+            with open("action_error.txt", "w") as f:
+                f.write(traceback.format_exc())
+            self.notify(f"Error: {e}", severity="error")
 
     def action_focus_search(self):
         self.query_one("#search-input", Input).focus()
@@ -350,5 +429,11 @@ class YTBeatsApp(App):
             self.engine.change_volume(-10)
 
 if __name__ == "__main__":
-    app = YTBeatsApp()
-    app.run()
+    try:
+        app = YTBeatsApp()
+        app.run()
+    except Exception as e:
+        import traceback
+        with open("crash.log", "w") as f:
+            f.write(traceback.format_exc())
+        print("Application crashed! Check crash.log for details.")

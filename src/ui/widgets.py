@@ -47,9 +47,3 @@ class PlayerControls(Container):
             yield ProgressBar(id="track-progress", show_eta=False, show_percentage=False)
         yield Label("Vol: 100%", id="vol-label")
 
-class DownloadStatus(Container):
-    def compose(self) -> ComposeResult:
-        yield Label("Downloads:", classes="section-header")
-        with Vertical(id="active-downloads"):
-            yield Label("No active downloads.", id="dl-status-label")
-            yield ProgressBar(id="dl-progress-bar", total=100, show_eta=True)

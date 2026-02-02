@@ -25,6 +25,14 @@ Brain/
 task.md.resolved
 implementation_plan.md.resolved
 
+# Debug Logs
+crash.log
+ui_critical_error.txt
+action_error.txt
+callback_error.txt
+download_worker_error.txt
+
+
 # OS
 .DS_Store
 Thumbs.db

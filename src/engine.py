@@ -6,7 +6,7 @@ import subprocess
 import os
 from typing import Optional, Callable, Dict, Any
 from python_mpv_jsonipc import MPV
-from .config import get_mpv_path
+from .config import get_mpv_path, get_app_data_dir
 
 class AudioEngine:
     def __init__(self):
@@ -14,6 +14,9 @@ class AudioEngine:
         if not self.mpv_path:
             raise RuntimeError("mpv is not installed or not in PATH.")
             
+        # Find yt-dlp to ensure MPV can play YouTube URLs
+        ytdl_path = shutil.which("yt-dlp")
+        
         # PID file for orphan cleanup on Windows
         self.pid_file = get_app_data_dir() / "engine.pid"
         
