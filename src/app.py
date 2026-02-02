@@ -19,17 +19,17 @@ class YTBeatsApp(App):
         Binding("q", "quit", "Quit"),
         Binding("d", "download_selected", "Download"),
         Binding("/", "focus_search", "Search"),
-        Binding("space", "toggle_pause", "Pause / Resume"),
+        Binding("space", "toggle_pause", "Pause / Resume", priority=True),
         Binding("r", "refresh_library", "Refresh Library"),
-        Binding("n", "next_track", "Next"),
-        Binding("p", "previous_track", "Prev"),
-        Binding("right", "next_track", "Next", show=False),
-        Binding("left", "previous_track", "Prev", show=False),
+        Binding("n", "next_track", "Next", priority=True),
+        Binding("p", "previous_track", "Prev", priority=True),
+        Binding("right", "next_track", "Next", show=False, priority=True),
+        Binding("left", "previous_track", "Prev", show=False, priority=True),
         Binding("c", "clear_queue", "Clear"),
-        Binding("]", "volume_up", "Vol +", show=False),
-        Binding("[", "volume_down", "Vol -", show=False),
-        Binding("up", "volume_up", "Vol +", show=False),
-        Binding("down", "volume_down", "Vol -", show=False),
+        Binding("]", "volume_up", "Vol +", show=False, priority=True),
+        Binding("[", "volume_down", "Vol -", show=False, priority=True),
+        Binding("up", "volume_up", "Vol +", show=False, priority=True),
+        Binding("down", "volume_down", "Vol -", show=False, priority=True),
     ]
 
     def __init__(self):
@@ -159,6 +159,7 @@ class YTBeatsApp(App):
         list_view = self.query_one("#results-list", ListView)
         list_view.clear()
         if not results:
+            list_view.append(ListItem(Label("No results found. Try another search.", classes="result-meta")))
             self.notify("No results found.", severity="warning")
             return
             
@@ -195,11 +196,15 @@ class YTBeatsApp(App):
         queue_list = self.query_one("#queue-list", ListView)
         queue_list.append(QueueItem(title, "Pending"))
         
-        # If nothing is playing, or we've reached the end of the queue and stopped, start playing.
-        queue_finished = (self.current_index >= len(self.current_playlist) - 2 and 
-                         self.engine and self.engine.get_status()["title"] == "Stopped")
+        # Determine if we should start playing immediately
+        # We start if the engine isn't running or if it's currently stopped/idle
+        should_start = True
+        if self.engine:
+            status = self.engine.get_status()
+            if status.get("title") != "Stopped":
+                should_start = False
         
-        if self.current_index == -1 or queue_finished:
+        if should_start:
             self.action_next_track()
         else:
             self.notify(f"Queued: {title}")
@@ -248,12 +253,16 @@ class YTBeatsApp(App):
         queue_list = self.query_one("#queue-list", ListView)
         for i, item in enumerate(queue_list.children):
             if isinstance(item, QueueItem):
+                status_label = item.query_one(".queue-status", Label)
                 if i < self.current_index:
-                    item.query_one(".queue-status", Label).update("Finished")
+                    status_label.update("Finished")
+                    item.remove_class("playing-now")
                 elif i == self.current_index:
-                    item.query_one(".queue-status", Label).update("Playing")
+                    status_label.update("Playing")
+                    item.add_class("playing-now")
                 else:
-                    item.query_one(".queue-status", Label).update("Pending")
+                    status_label.update("Pending")
+                    item.remove_class("playing-now")
 
     def action_clear_queue(self):
         """Clear the entire playlist."""
@@ -289,6 +298,11 @@ class YTBeatsApp(App):
             lib_list.append(item)
         
         if files:
+            # Switch to library tab automatically to show findings
+            try:
+                self.query_one(TabbedContent).active = "library-tab"
+            except:
+                pass
             self.notify(f"Library updated: {len(files)} files found.")
 
     def action_download_selected(self):
@@ -315,7 +329,7 @@ class YTBeatsApp(App):
         elif event.button.id == "btn-stop":
             self.action_clear_queue()
 
-    async def on_unmount(self):
+    def on_unmount(self):
         if self.engine:
             self.engine.quit()
 

@@ -114,6 +114,16 @@ ListItem.--highlight {
     text-style: bold;
 }
 
+ListItem.playing-now {
+    background: #1e293b;
+    border-left: thick #38bdf8;
+    text-style: bold;
+}
+
+ListItem.playing-now .queue-title {
+    color: #38bdf8;
+}
+
 /* Side Sections */
 .section-header {
     background: #1e293b;

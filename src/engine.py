@@ -138,6 +138,11 @@ class AudioEngine:
         if hasattr(self, 'process') and self.process:
             try:
                 self.process.terminate()
+                # Give it a tiny moment to die gracefully, otherwise kill it
+                try:
+                    self.process.wait(timeout=0.2)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
             except:
                 pass
             
