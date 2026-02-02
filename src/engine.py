@@ -24,9 +24,14 @@ class AudioEngine:
         # We start MPV manually because python-mpv-jsonipc adds '=yes' to boolean flags
         # which causes MPV v0.41.0 to crash on startup (Exit code 1).
         
-        pipe_name = f"ytbeats-{uuid.uuid4().hex[:6]}"
-        full_pipe = r"\\.\pipe\\" + pipe_name
-        
+        pipe_id = f"ytbeats-{uuid.uuid4().hex[:6]}"
+        if os.name == 'nt':
+            self.ipc_path = r"\\.\pipe\\" + pipe_id
+            ipc_socket_arg = pipe_id
+        else:
+            self.ipc_path = os.path.join("/tmp", f"{pipe_id}.sock")
+            ipc_socket_arg = self.ipc_path
+            
         mpv_args = [
             self.mpv_path,
             "--idle",
@@ -38,7 +43,7 @@ class AudioEngine:
             "--osd-level=0",          # Disable on-screen display
             "--input-default-bindings=no", # Disable built-in keys
             "--input-builtin-bindings=no",
-            f"--input-ipc-server={full_pipe}"
+            f"--input-ipc-server={self.ipc_path}"
         ]
         
         # Use high-performance audio output on Windows if available
@@ -60,7 +65,7 @@ class AudioEngine:
         while time.time() - start_time < 3.0: # Try for 3 seconds
             try:
                 # Connection library to the existing process
-                self.mpv = MPV(start_mpv=False, ipc_socket=pipe_name)
+                self.mpv = MPV(start_mpv=False, ipc_socket=ipc_socket_arg)
                 connected = True
                 break
             except Exception:
@@ -68,7 +73,7 @@ class AudioEngine:
         
         if not connected:
             self.quit()
-            raise RuntimeError(f"Could not connect to MPV IPC on pipe: {full_pipe}")
+            raise RuntimeError(f"Could not connect to MPV IPC on: {self.ipc_path}")
                        
         # Configure MPV properties via IPC
         self.mpv.command("set_property", "keep-open", "yes") # Don't exit on partial errors
@@ -134,6 +139,13 @@ class AudioEngine:
                 self.process.terminate()
         except:
             pass
+            
+        # Cleanup Unix socket file
+        if os.name != 'nt' and hasattr(self, 'ipc_path') and os.path.exists(self.ipc_path):
+            try:
+                os.remove(self.ipc_path)
+            except:
+                pass
             
     def get_status(self) -> Dict[str, Any]:
         """Returns playback status."""
