@@ -10,13 +10,15 @@ YT-Beats aims to provide a "Zen-like" music experience directly in the terminal.
 
 - **Keyboard First**: Every action should be accessible via shortcuts. The mouse is optional, never required. The latest navigation system (Arrow keys for context, single-letter commands for action) maximizes speed for power users.
 - **Async by Default**: The UI must never freeze. Search, playback initialization, and downloads occur in background threads to ensure a snappy TUI.
-- **Minimalism & Focus**: Focus on the music. By moving to a tabbed interface, we categorize the experience (Discover, Keep, Manage) without cluttering the screen with unnecessary widgets.
+- **Minimalism & Focus**: Focus on the music. By moving to a tabbed interface, we categorize the experience (Discover, Organize, Keep, Manage) without cluttering the screen with unnecessary widgets.
 - **Bandwidth Efficiency**: Only request what is needed. By strictly requesting audio streams and ignoring video data, YT-Beats reduces network usage by up to 90% compared to a standard web browser.
 - **TUI Aesthetics**: Efficiency shouldn't mean ugliness. We use a curated high-contrast slate-and-cyan theme to provide a premium, modern feel that competes with graphical desktop apps.
+- **Curated Persistence**: We enable users to save and manage their own playlists locally (`playlists.json`). This keeps the app portable and user-centric, avoiding reliance on cloud accounts for simple song lists.
 
 ## 4. Target Audience & Use Cases
 - **Developers & Power Users**: Those who spend their day in the terminal and want low-overhead music controls.
 - **Resource-Constrained Systems**: Users who want to listen to YouTube without the CPU/RAM penalty of a modern web browser.
+- **Curators**: Users who want to build and manage custom playlists of YouTube streams mixed with local files, free from algorithm interference.
 - **Library Builders**: Users who want to quickly "keep" a song they just discovered by downloading it as a high-quality MP3 with smart duplicate prevention.
 
 ## 5. Real-World Workflow Fit

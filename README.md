@@ -3,7 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
-![YT-Beats Preview](assets/release_v0.0.14.png)
+![YT-Beats Preview](assets/release_v0.0.16.1.png)
 
 **"The minimal, cross-platform terminal music player for YouTube and local audio."**
 
@@ -12,7 +12,10 @@ A keyboard-driven music experience designed for speed and focus. YT-Beats combin
 ## Features
 - **Textual TUI**: Modern, keyboard-driven interface.
 - **YouTube Integration**: Search and stream high-quality audio.
-- **Bandwidth Optimized**: Streams and downloads pure audio data only, bypassing 90% of typical video bandwidth.
+- **Playlist Management**: Load, Save, Play, and Delete YouTube playlists.
+- **Queue Control**: Filter "Up Next" tracks with search, and click any track to jump and play.
+- **Library "Play All"**: Instantly queue and play your entire local collection.
+- **Bandwidth Optimized**: Streams and downloads pure audio data only.
 - **Smart Playback**: Prioritizes local files if already downloaded.
 - **Lightweight**: Uses `mpv` for efficient playback.
 
@@ -47,9 +50,10 @@ pip install -r requirements.txt
 - **Quit**: Press **q**.
 
 ### Features
-- **Modern Tabbed TUI**: Effortlessly switch between YouTube Search, Local Library, and Active Downloads.
+- **Modern Tabbed TUI**: Effortlessly switch between YouTube Search, Playlists, Library, and Downloads.
+- **Playlist Power**: Import external YouTube playlists or save your own locally for quick access.
 - **Smart Duplicate Prevention**: Automatically checks your library using Video IDs to prevent re-downloading existing songs.
-- **Bandwidth Optimized**: Streams and downloads pure audio data only, bypassing 90% of typical video bandwidth.
+- **Bandwidth Optimized**: Streams and downloads pure audio data only.
 - **Process Decoupling**: Uses MPV as a background process; your music keeps playing even if the UI refreshes.
 - **High-Contrast Design**: Optimized for readability with a sleek, cyan-accented slate theme.
 

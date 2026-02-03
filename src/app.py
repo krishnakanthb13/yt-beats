@@ -53,29 +53,32 @@ class YTBeatsApp(App):
             with Vertical(id="left-pane"):
                 with TabbedContent(initial="search-tab", id="main-tabs"):
                     with TabPane("YouTube", id="search-tab"):
-                        yield SearchBar(id="search-bar")
-                        yield ListView(id="results-list")
+                        with Vertical():
+                            yield SearchBar(id="search-bar")
+                            yield ListView(id="results-list")
                     with TabPane("Playlists", id="playlists-tab"):
-                        yield Container(
-                            Input(placeholder="Paste YouTube Playlist URL...", id="playlist-url-input"),
-                            Input(placeholder="Playlist Name (optional for loading)...", id="playlist-name-input"),
-                            Horizontal(
-                                Button("Load", id="btn-load-playlist", variant="primary", classes="playlist-btn"),
-                                Button("Save", id="btn-save-playlist", variant="success", classes="playlist-btn"),
-                                Button("Delete", id="btn-delete-playlist", variant="error", classes="playlist-btn"),
-                                classes="button-row"
-                            ),
-                            id="playlist-controls"
-                        )
-                        yield Label("Saved Playlists", classes="section-header")
-                        yield ListView(id="saved-playlists-list")
+                        with Vertical():
+                            yield Container(
+                                Input(placeholder="Paste YouTube Playlist URL...", id="playlist-url-input"),
+                                Input(placeholder="Playlist Name (optional for loading)...", id="playlist-name-input"),
+                                Horizontal(
+                                    Button("Load", id="btn-load-playlist", variant="primary", classes="playlist-btn"),
+                                    Button("Save", id="btn-save-playlist", variant="success", classes="playlist-btn"),
+                                    Button("Delete", id="btn-delete-playlist", variant="error", classes="playlist-btn"),
+                                    classes="button-row"
+                                ),
+                                id="playlist-controls"
+                            )
+                            yield Label("Saved Playlists", classes="section-header")
+                            yield ListView(id="saved-playlists-list")
                     with TabPane("Library", id="library-tab"):
-                        yield Horizontal(
-                            Label(str(get_downloads_dir()), id="library-folder-path", classes="folder-path"),
-                            Button("Play All", id="btn-library-play-all", variant="primary", classes="compact-btn"),
-                            classes="library-header-row"
-                        )
-                        yield ListView(id="library-list")
+                        with Vertical():
+                            yield Horizontal(
+                                Label(str(get_downloads_dir()), id="library-folder-path", classes="folder-path"),
+                                Button("Play All", id="btn-library-play-all", variant="primary", classes="compact-btn"),
+                                classes="library-header-row"
+                            )
+                            yield ListView(id="library-list")
                     with TabPane("Downloads", id="downloads-tab"):
                         yield ListView(id="downloads-list")
 

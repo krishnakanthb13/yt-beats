@@ -10,8 +10,9 @@ yt-beats/
 │   │   └── widgets.py        # Custom Widgets (SearchBar, SearchResultItem, etc.)
 │   ├── app.py                # App Logic: TUI, Event Loop, Library Scanning
 │   ├── config.py             # Binary Discovery (mpv, ffmpeg) & Pathing
-│   ├── downloader.py          # yt-dlp layer, DownloadQueue, & ID matching
-│   ├── engine.py              # MPV JSON-IPC playback manager
+│   ├── downloader.py         # yt-dlp layer, DownloadQueue, & ID matching
+│   ├── engine.py             # MPV JSON-IPC playback manager
+│   ├── playlist_manager.py   # Load/Save/Delete playlists logic
 │   └── __init__.py           # Package init
 ├── .gitignore                # Excludes virtualenvs, downloads, and .txt logs
 ├── LICENSE                   # GNU GPL v3
@@ -25,18 +26,19 @@ yt-beats/
 
 YT-Beats uses a **Decoupled Worker Architecture**:
 
--   **Frontend (Textual)**: React-like TUI that uses CSS for styling. It handles navigation across three core tabs: **YouTube**, **Library**, and **Downloads**.
+-   **Frontend (Textual)**: React-like TUI that uses CSS for styling. It handles navigation across four core tabs: **YouTube**, **Playlists**, **Library**, and **Downloads**.
 -   **Extraction (yt-dlp)**: High-speed metadata extraction. It filters for `bestaudio` to minimize data overhead.
 -   **Audio Backend (MPV)**: Runs as an independent process. The Python app controls it via a JSON-over-TCP IPC bridge.
--   **Worker Threads**: Critical tasks (Searching, Local File Scanning, Downloading) run in background workers to keep the UI at a constant 60fps.
+-   **Worker Threads**: Critical tasks (Searching, Local File Scanning, Downloading, Playlist Loading) run in background workers to keep the UI at a constant 60fps.
 
 ## 3. Core Modules & Functions
 
 | Module | Purpose | Key Feature |
 | :--- | :--- | :--- |
-| `app.py` | Main Orchestrator | Manages tabbed content and playback queue. |
+| `app.py` | Main Orchestrator | Manages tabbed content and playback queue logic. |
 | `engine.py` | Audio Engine | Polling-based position and volume updates. |
 | `downloader.py`| YouTube Layer | `DownloadQueue` prevents duplicates via Video ID extraction. |
+| `playlist_manager.py` | Playlist Logic | Handles JSON serialization/deserialization for saving playlists. |
 | `config.py` | Configuration | Automatically locates `mpv.exe` and `ffmpeg.exe` on Windows/Unix. |
 | `widgets.py` | UI Components | Lightweight ListItem wrappers with cyan-accented highlights. |
 
