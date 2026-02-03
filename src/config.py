@@ -35,11 +35,20 @@ def get_mpv_path() -> str:
         
         if not mpv:
             # Fallback for common Chocolatey/Windows paths if which() fails
+            app_data = os.environ.get("APPDATA", "")
+            local_app_data = os.environ.get("LOCALAPPDATA", "")
+            user_profile = os.environ.get("USERPROFILE", "")
+            
             fallbacks = [
                 r"C:\ProgramData\chocolatey\lib\mpvio.install\tools\mpv.exe",
                 r"C:\ProgramData\chocolatey\bin\mpv.exe",
                 r"C:\mpv\mpv.exe",
-                Path.home() / "mpv.exe"
+                os.path.join(user_profile, "mpv.exe"),
+                os.path.join(user_profile, "scoop", "apps", "mpv", "current", "mpv.exe"),
+                os.path.join(local_app_data, "Programs", "mpv", "mpv.exe"),
+                r"C:\Program Files\mpv\mpv.exe",
+                r"C:\Program Files (x86)\mpv\mpv.exe",
+                r"C:\Program Files\MPV-Player\mpv.exe",
             ]
             
             for path in fallbacks:

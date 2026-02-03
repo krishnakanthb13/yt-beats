@@ -193,11 +193,34 @@ class MusicDownloader:
             try:
                 result = ydl.extract_info(search_query, download=False)
                 if 'entries' in result:
-                    return result['entries']
+                    return list(result['entries'])
                 elif 'title' in result: # Single video URL result
                     return [result]
             except Exception as e:
                 print(f"Error searching: {e}")
+                return []
+        return []
+
+    def extract_playlist(self, playlist_url: str) -> List[Dict[str, Any]]:
+        """Extracts videos from a YouTube playlist URL."""
+        opts = {
+            'extract_flat': True,
+            'quiet': True,
+            'ignoreerrors': True,
+        }
+        
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            try:
+                result = ydl.extract_info(playlist_url, download=False)
+                if 'entries' in result:
+                    # Filter out private/deleted videos (usually have no title or id)
+                    valid_entries = [
+                        entry for entry in result['entries'] 
+                        if entry.get('title') and entry.get('id')
+                    ]
+                    return valid_entries
+            except Exception as e:
+                print(f"Error extracting playlist: {e}")
                 return []
         return []
 

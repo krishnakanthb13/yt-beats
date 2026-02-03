@@ -31,7 +31,7 @@ ui_critical_error.txt
 action_error.txt
 callback_error.txt
 download_worker_error.txt
-
+playlists.json
 
 # OS
 .DS_Store

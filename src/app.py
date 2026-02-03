@@ -4,10 +4,11 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.binding import Binding
 from textual import work
 
-from .ui.widgets import SearchBar, PlayerControls, SearchResultItem, QueueItem, LibraryItem
+from .ui.widgets import SearchBar, PlayerControls, SearchResultItem, QueueItem, LibraryItem, SavedPlaylistItem
 from .downloader import MusicDownloader, DownloadQueue
 from .engine import AudioEngine
 from .config import get_downloads_dir
+from .playlist_manager import PlaylistManager
 
 import os
 
@@ -18,7 +19,7 @@ class YTBeatsApp(App):
         Binding("q", "quit", "Quit"),
         Binding("d", "download_selected", "Download"),
         Binding("/", "focus_search", "Search"),
-        Binding("space", "toggle_pause", "Pause / Resume", priority=True),
+        Binding("space", "toggle_pause", "Pause / Resume"),
         Binding("r", "refresh_library", "Refresh Library"),
         Binding("n", "next_track", "Next"),
         Binding("p", "previous_track", "Prev"),
@@ -31,6 +32,7 @@ class YTBeatsApp(App):
         super().__init__()
         self.downloader = MusicDownloader()
         self.download_queue = DownloadQueue(str(get_downloads_dir()))
+        self.playlist_manager = PlaylistManager()
         self.engine = None 
         self.engine_error = None
         # Engine init is delayed or guarded to handle startup issues
@@ -53,15 +55,35 @@ class YTBeatsApp(App):
                     with TabPane("YouTube", id="search-tab"):
                         yield SearchBar(id="search-bar")
                         yield ListView(id="results-list")
+                    with TabPane("Playlists", id="playlists-tab"):
+                        yield Container(
+                            Input(placeholder="Paste YouTube Playlist URL...", id="playlist-url-input"),
+                            Input(placeholder="Playlist Name (optional for loading)...", id="playlist-name-input"),
+                            Horizontal(
+                                Button("Load", id="btn-load-playlist", variant="primary", classes="playlist-btn"),
+                                Button("Save", id="btn-save-playlist", variant="success", classes="playlist-btn"),
+                                Button("Delete", id="btn-delete-playlist", variant="error", classes="playlist-btn"),
+                                classes="button-row"
+                            ),
+                            id="playlist-controls"
+                        )
+                        yield Label("Saved Playlists", classes="section-header")
+                        yield ListView(id="saved-playlists-list")
                     with TabPane("Library", id="library-tab"):
-                        yield Label(str(get_downloads_dir()), id="library-folder-path", classes="folder-path")
+                        yield Horizontal(
+                            Label(str(get_downloads_dir()), id="library-folder-path", classes="folder-path"),
+                            Button("Play All", id="btn-library-play-all", variant="primary", classes="compact-btn"),
+                            classes="library-header-row"
+                        )
                         yield ListView(id="library-list")
                     with TabPane("Downloads", id="downloads-tab"):
                         yield ListView(id="downloads-list")
+
                 
             # Right Pane: Queue
             with Vertical(id="right-pane"):
                 yield Label("Up Next", classes="section-header")
+                yield Input(placeholder="Filter queue...", id="queue-search")
                 yield ListView(id="queue-list")
                 
         yield PlayerControls(id="player-controls")
@@ -71,6 +93,7 @@ class YTBeatsApp(App):
         """Startup tasks."""
         self.query_one("#search-input", Input).focus()
         self.action_refresh_library()
+        self.refresh_saved_playlists()
         
         if self.engine:
             # Set the callback for when a track ends
@@ -192,6 +215,8 @@ class YTBeatsApp(App):
             if not query: return
             self.notify(f"Searching for '{query}'...")
             self.perform_search(query)
+        elif message.input.id == "queue-search":
+            self.refresh_queue_ui()
 
     @work(exclusive=True, thread=True)
     def perform_search(self, query: str):
@@ -210,7 +235,20 @@ class YTBeatsApp(App):
             return
             
         for res in results:
-            duration = res.get('duration_string', 'N/A')
+            duration = res.get('duration_string')
+            if not duration:
+                # Fallback to duration in seconds
+                seconds = res.get('duration')
+                if seconds:
+                    m, s = divmod(int(seconds), 60)
+                    if m >= 60:
+                        h, m = divmod(m, 60)
+                        duration = f"{h}:{m:02d}:{s:02d}"
+                    else:
+                        duration = f"{m}:{s:02d}"
+                else:
+                    duration = "N/A"
+
             item = SearchResultItem(
                 title=res.get('title', 'Unknown'),
                 uploader=res.get('uploader', 'Unknown'),
@@ -229,6 +267,53 @@ class YTBeatsApp(App):
             self.enqueue(item.title, f"https://www.youtube.com/watch?v={item.video_id}", "streaming")
         elif isinstance(item, LibraryItem):
             self.enqueue(item.title, item.path, "local")
+        elif isinstance(item, QueueItem):
+            # Play from the selected queue item
+            # Use the stored track index from the item, which handles filtered states correctly
+            self.current_index = item.track_index
+            self._start_playback()
+
+    async def on_button_pressed(self, event: Button.Pressed):
+        # Clear focus from the button to prevent sticky state
+        self.set_focus(None)
+        
+        if event.button.id == "btn-play":
+            self.action_toggle_pause()
+        elif event.button.id == "btn-stop":
+            self.action_clear_queue()
+        elif event.button.id == "btn-load-playlist":
+            self.trigger_load_action()
+        elif event.button.id == "btn-save-playlist":
+            self.save_current_playlist_input()
+        elif event.button.id == "btn-delete-playlist":
+            self.delete_selected_playlist()
+        elif event.button.id == "btn-library-play-all":
+            self.action_play_all_library()
+
+    def action_play_all_library(self):
+        """Replaces queue with all library items and plays."""
+        lib_list = self.query_one("#library-list", ListView)
+        if not lib_list.children:
+            self.notify("Library is empty.", severity="warning")
+            return
+            
+        self.notify("Playing all library tracks...")
+        
+        # Clear existing queue
+        self.current_playlist = []
+        self.current_index = -1
+        
+        # Add all items
+        for child in lib_list.children:
+            if isinstance(child, LibraryItem):
+                self.current_playlist.append({
+                    "title": child.title,
+                    "url": child.path,
+                    "type": "local"
+                })
+        
+        self.refresh_queue_ui()
+        self.action_next_track()
 
     def enqueue(self, title: str, url: str, source_type: str):
         """Add a song to the queue."""
@@ -238,9 +323,8 @@ class YTBeatsApp(App):
             "type": source_type
         })
         
-        # Update Queue UI
-        queue_list = self.query_one("#queue-list", ListView)
-        queue_list.append(QueueItem(title, "Pending"))
+        # Update Queue UI logic to respect filter
+        self.refresh_queue_ui()
         
         # Determine if we should start playing immediately
         # We start if the engine isn't running or if it's currently stopped/idle
@@ -297,18 +381,42 @@ class YTBeatsApp(App):
     def _update_queue_status(self):
         """Updates the status labels in the queue list."""
         queue_list = self.query_one("#queue-list", ListView)
-        for i, item in enumerate(queue_list.children):
+        for item in queue_list.children:
             if isinstance(item, QueueItem):
                 status_label = item.query_one(".queue-status", Label)
-                if i < self.current_index:
+                
+                # Use stored index
+                if item.track_index < self.current_index:
                     status_label.update("Finished")
                     item.remove_class("playing-now")
-                elif i == self.current_index:
+                elif item.track_index == self.current_index:
                     status_label.update("Playing")
                     item.add_class("playing-now")
                 else:
                     status_label.update("Pending")
                     item.remove_class("playing-now")
+
+    def refresh_queue_ui(self):
+        """Rebuilds the queue list based on current playlists and filter."""
+        queue_list = self.query_one("#queue-list", ListView)
+        try:
+            filter_text = self.query_one("#queue-search", Input).value.lower()
+        except:
+            filter_text = ""
+            
+        queue_list.clear()
+        
+        for i, track in enumerate(self.current_playlist):
+            if not filter_text or filter_text in track['title'].lower():
+                # Determine status based on global index
+                status = "Pending"
+                if i < self.current_index: status = "Finished"
+                elif i == self.current_index: status = "Playing"
+                
+                item = QueueItem(track['title'], status, i)
+                if i == self.current_index:
+                    item.add_class("playing-now")
+                queue_list.append(item)
 
     def action_clear_queue(self):
         """Clear the entire playlist."""
@@ -319,7 +427,7 @@ class YTBeatsApp(App):
             self.engine.stop()
         self.query_one("#status-label", Label).update("Stopped")
         self.notify("Queue cleared.")
-
+        
     @work(thread=True)
     def action_refresh_library(self):
         """Scan download directory for songs in the background."""
@@ -404,24 +512,127 @@ class YTBeatsApp(App):
         self.query_one("#search-input", Input).focus()
 
     def action_toggle_pause(self):
+        # Prevent toggling if typing in an input
+        if isinstance(self.focused, Input):
+            return
+            
         if self.engine:
             self.engine.pause()
+
+    def trigger_load_action(self):
+        """Determines source of playlist (Input or List Selection) and loads it."""
+        # 1. Check Input URL first
+        url = self.query_one("#playlist-url-input", Input).value.strip()
+        if url:
+            self.load_playlist_videos(url)
+            return
+
+        # 2. Check Selected List Item
+        pl_list = self.query_one("#saved-playlists-list", ListView)
+        if pl_list.highlighted_child:
+            item = pl_list.highlighted_child
+            if isinstance(item, SavedPlaylistItem):
+                self.load_playlist_videos(item.playlist_url)
+                self.notify(f"Loading playlist: {item.playlist_name}")
+                return
+        
+        self.notify("Please enter a URL or select a saved playlist to load.", severity="warning")
+
+    def delete_selected_playlist(self):
+        """Deletes the currently selected playlist from the list."""
+        pl_list = self.query_one("#saved-playlists-list", ListView)
+        if pl_list.highlighted_child:
+            item = pl_list.highlighted_child
+            if isinstance(item, SavedPlaylistItem):
+                self.playlist_manager.delete_playlist(item.playlist_name)
+                self.notify(f"Deleted playlist: {item.playlist_name}")
+                self.refresh_saved_playlists()
+        else:
+            self.notify("No playlist selected to delete.", severity="warning")
+
+    @work(exclusive=True, thread=True)
+    def load_playlist_videos(self, url: str):
+        """Fetches videos from playlist and queues them."""
+        self.notify("Fetching playlist info...")
+        videos = self.downloader.extract_playlist(url)
+        self.call_from_thread(self._add_playlist_to_queue, videos)
+
+    def _add_playlist_to_queue(self, videos):
+        if not videos:
+            self.notify("No videos found in playlist or invalid URL.", severity="error")
+            return
             
-    async def on_button_pressed(self, event: Button.Pressed):
-        if event.button.id == "btn-play":
-            self.action_toggle_pause()
-        elif event.button.id == "btn-stop":
-            self.action_clear_queue()
+        self.notify("Processing playlist items...")
+        
+        # Capture state before adding
+        was_empty = len(self.current_playlist) == 0
+        was_at_end = self.current_index == len(self.current_playlist) - 1
+        
+        count = 0
+        for vid in videos:
+            title = vid.get('title', 'Unknown')
+            vid_id = vid.get('id')
+            if vid_id:
+                url = f"https://www.youtube.com/watch?v={vid_id}"
+                # Append directly to data model instead of using enqueue() one by one
+                self.current_playlist.append({
+                    "title": title,
+                    "url": url,
+                    "type": "streaming"
+                })
+                count += 1
+        
+        if count > 0:
+            # Single UI refresh after all items are added
+            self.refresh_queue_ui()
+            self.notify(f"Added {count} tracks from playlist.")
+            
+            # Check if we should auto-start playback
+            should_start = False
+            if self.engine:
+                status = self.engine.get_status()
+                # If engine is stopped, we might want to start
+                if status.get("title") == "Stopped" or status.get("title") == "Idle":
+                    should_start = True
+            
+            # Only auto-start if we were truly stopped/empty or at the end of the previous queue
+            if should_start and (was_empty or was_at_end):
+                self.action_next_track()
+
+    def save_current_playlist_input(self):
+        url = self.query_one("#playlist-url-input", Input).value
+        name = self.query_one("#playlist-name-input", Input).value
+        
+        if not url or not name:
+            self.notify("Both URL and Name are required to save.", severity="warning")
+            return
+            
+        try:
+            self.playlist_manager.save_playlist(name, url)
+            self.notify(f"Playlist '{name}' saved!")
+            self.refresh_saved_playlists()
+        except Exception as e:
+            self.notify(f"Error saving playlist: {e}", severity="error")
+
+    def refresh_saved_playlists(self):
+        """Reloads the saved playlists list from file."""
+        pl_list = self.query_one("#saved-playlists-list", ListView)
+        pl_list.clear()
+        playlists = self.playlist_manager.load_playlists()
+        for p in playlists:
+            pl_list.append(SavedPlaylistItem(p['name'], p['url']))
 
     def on_unmount(self):
         if self.engine:
             self.engine.quit()
 
     def action_volume_up(self):
+        if isinstance(self.focused, Input): return
         if self.engine:
             self.engine.change_volume(10)
 
     def action_volume_down(self):
+        if isinstance(self.focused, Input): return
         if self.engine:
             self.engine.change_volume(-10)
 

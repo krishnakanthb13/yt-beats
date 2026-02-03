@@ -280,3 +280,58 @@ ProgressBar>.progress--bar-value {
 .dl-progress>.progress--bar-value {
     background: #10b981;
 }
+
+#queue-search {
+    margin-bottom: 1;
+}
+
+/* Playlist Tab */
+#playlist-controls {
+    height: auto;
+    padding: 1 2 0 2;
+    background: #1e293b;
+    border-bottom: solid #0f172a;
+}
+
+#playlist-controls Input {
+    margin-bottom: 0;
+    height: 3;
+}
+
+.button-row {
+    height: 3;
+    margin-top: 0;
+    margin-bottom: 0;
+    align: center middle;
+}
+
+.playlist-btn {
+    width: auto;
+    min-width: 14;
+    margin-left: 1;
+    margin-right: 1;
+}
+
+.playlist-name {
+    color: #f8fafc;
+    text-style: bold;
+}
+
+.playlist-url {
+    color: #64748b;
+    text-style: italic;
+    background: transparent;
+}
+
+.library-header-row {
+    height: 3;
+    background: #1e293b;
+    align: center middle;
+    padding: 0 1;
+}
+
+.compact-btn {
+    height: 1;
+    min-width: 12;
+    margin-left: 2;
+}

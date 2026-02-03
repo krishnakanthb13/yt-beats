@@ -28,10 +28,11 @@ class LibraryItem(ListItem):
         yield Label(self.title, classes="library-title")
 
 class QueueItem(ListItem):
-    def __init__(self, title: str, status: str):
+    def __init__(self, title: str, status: str, track_index: int):
         super().__init__()
         self.title = title
         self.status = status
+        self.track_index = track_index
 
     def compose(self) -> ComposeResult:
         yield Label(self.title, classes="queue-title")
@@ -45,4 +46,14 @@ class PlayerControls(Container):
             yield Label("Stopped", id="status-label")
             yield ProgressBar(id="track-progress", show_eta=False, show_percentage=False)
         yield Label("Vol: 100%", id="vol-label")
+
+class SavedPlaylistItem(ListItem):
+    def __init__(self, name: str, url: str):
+        super().__init__()
+        self.playlist_name = name
+        self.playlist_url = url
+
+    def compose(self) -> ComposeResult:
+        yield Label(self.playlist_name, classes="playlist-name")
+        yield Label(self.playlist_url, classes="playlist-url")
 
